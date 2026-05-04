@@ -60,7 +60,6 @@
 - `components/home/LevelCard.tsx` — book emoji icon, level name, description, progress bar ✓
 - `app/(tabs)/index.tsx` — wired with useHomeScreen, loading/error states ✓
 - `backend/apps/progress/views.py` — HomeScreenView returns level_description, next_level_name ✓
-- `backend/apps/users/models.py` — Level.description field confirmed ✓
 - `backend/apps/curriculum/serializers.py` — Section 1 always unlocked regardless of progress record ✓
 
 #### Learn ✓
@@ -85,6 +84,18 @@
 - `components/community/LeaderboardView.tsx` — weekly challenge card, segment control sub-tabs (This week/All time/Partners), ranked learner list with gold #1 ✓
 - `app/(tabs)/community.tsx` — tab state, connect mutation with per-card loading state, My Partners placeholder ✓
 
+#### Profile ✓
+- `backend/apps/users/serializers.py` — LevelSerializer extended (description, order); UserLevelSerializer extended (level_percentage, next_level_name); new AchievementSerializer + UserAchievementSerializer; ProfileSerializer extended (achievements, partners_count) ✓
+- `types/api.ts` — Level, UserLevel, Profile updated; new Achievement, UserAchievement interfaces ✓
+- `hooks/useProfile.ts` — useProfile query + useUpdateProfile mutation with optimistic updates ✓
+- `components/profile/ProfileHeader.tsx` — initials avatar, username, handle/location, streak badge, level subtitle badge, join date ✓
+- `components/profile/StatsRow.tsx` — 4-tile card: total XP, overall % complete, day streak, partners ✓
+- `components/profile/SectionProgressList.tsx` — section items with progress bar or locked badge ✓
+- `components/profile/AchievementsGrid.tsx` — earned achievements in 4-column grid, empty state ✓
+- `components/profile/SettingsSection.tsx` — Switch toggles with optimistic updates, action rows with chevron, destructive logout ✓
+- `components/profile/LevelUpModal.tsx` — full-screen celebration modal (trophy, level name, stats, share, keep going) — trigger wired in Phase 5 ✓
+- `app/(tabs)/profile.tsx` — wired with useProfile, useCurriculum, useUpdateProfile, useAuth ✓
+
 ---
 
 ## In Progress
@@ -95,18 +106,18 @@
 
 ## Next
 
-### Phase 4 — Remaining Screen
+### Phase 5 — Lesson Flow ✓ (partial)
 
-- [ ] Profile — `hooks/useProfile.ts`, `components/profile/`, `app/(tabs)/profile.tsx`
-
-### Phase 5 — Lesson Flow
-
-- [ ] Lesson screen — template → practice → quiz → review flow (`lesson-flow.png`)
+- [x] Lesson screen — template → practice → quiz → review steps (`lesson-flow.png`)
+- [x] Wire Continue button on Home and Learn screens to lesson route
 - [ ] Story player screen — audio playback, transcript, tips
+- [ ] Wire LevelUpModal trigger on section/level completion
 
 ### Phase 6 — Polish
 
+- [ ] My Partners tab — add `/api/community/partners/` list endpoint
 - [ ] Vocab review (SRS) flow
 - [ ] Pull-to-refresh on all screens
 - [ ] Haptic feedback on interactions
 - [ ] Skeleton loading states
+- [ ] Edit profile screen

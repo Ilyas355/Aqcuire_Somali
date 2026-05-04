@@ -165,6 +165,8 @@ export interface SubtopicDetail {
   title: string;
   description: string;
   order: number;
+  section_title: string;
+  section_xp_reward: number;
   phrases: Phrase[];
   key_patterns: KeyPattern[];
   common_mistakes: CommonMistake[];

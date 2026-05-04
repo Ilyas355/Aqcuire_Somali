@@ -1,4 +1,5 @@
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
 
 import { LearnHeader } from '@/components/learn/LearnHeader';
 import { SectionCard } from '@/components/learn/SectionCard';
@@ -10,6 +11,7 @@ import { useHomeScreen } from '@/hooks/useHomeScreen';
 export default function LearnScreen() {
   const { data: sections, isLoading: sectionsLoading, isError: sectionsError } = useCurriculum();
   const { data: homeData } = useHomeScreen();
+  const router = useRouter();
 
   const isLoading = sectionsLoading;
   const isError = sectionsError;
@@ -34,8 +36,8 @@ export default function LearnScreen() {
     );
   }
 
-  const handleContinue = (_subtopicId: number) => {
-    // Lesson flow screen will be wired here
+  const handleContinue = (subtopicId: number) => {
+    router.push(`/lesson/${subtopicId}`);
   };
 
   const handleHowItWorks = () => {

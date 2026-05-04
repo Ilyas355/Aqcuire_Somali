@@ -47,7 +47,13 @@ export default function HomeScreen() {
         />
         <ContinueLearningCard
           subtopic={data.current_subtopic}
-          onContinue={() => router.navigate('/(tabs)/learn')}
+          onContinue={() => {
+            if (data.current_subtopic) {
+              router.push(`/lesson/${data.current_subtopic.id}`);
+            } else {
+              router.navigate('/(tabs)/learn');
+            }
+          }}
         />
         <ShortcutTiles
           vocabDueCount={data.vocab_due_count}
