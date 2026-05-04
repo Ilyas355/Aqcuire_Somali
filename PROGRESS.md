@@ -46,32 +46,67 @@
 - `app/(auth)/register.tsx` — register form, field-level errors, focus chain ✓
 - `app/_layout.tsx` — AuthProvider wrapper, auth gate (useSegments + router.replace) ✓
 - `app/(tabs)/_layout.tsx` — 5-tab layout with Ionicons, AppColors, HapticTab ✓
-- `app/(tabs)/index.tsx` — Home placeholder with logout button ✓
-- `app/(tabs)/learn.tsx` — placeholder ✓
-- `app/(tabs)/listen.tsx` — placeholder ✓
-- `app/(tabs)/community.tsx` — placeholder ✓
-- `app/(tabs)/profile.tsx` — placeholder ✓
 - `.env` — EXPO_PUBLIC_API_URL set, Django ALLOWED_HOSTS updated ✓
 - End-to-end auth flow tested on iOS device ✓
+
+### Phase 4 — Screens ✓
+
+#### Home ✓
+- `hooks/useHomeScreen.ts` — useQuery wrapping getHomeScreen ✓
+- `components/home/GreetingHeader.tsx` — title, subtitle, streak badge (hidden at 0) ✓
+- `components/home/OverallProgressCard.tsx` — SVG circular progress ring ✓
+- `components/home/ContinueLearningCard.tsx` — current subtopic card with Continue button ✓
+- `components/home/ShortcutTiles.tsx` — Listening and Vocab Quiz shortcut tiles ✓
+- `components/home/LevelCard.tsx` — book emoji icon, level name, description, progress bar ✓
+- `app/(tabs)/index.tsx` — wired with useHomeScreen, loading/error states ✓
+- `backend/apps/progress/views.py` — HomeScreenView returns level_description, next_level_name ✓
+- `backend/apps/users/models.py` — Level.description field confirmed ✓
+- `backend/apps/curriculum/serializers.py` — Section 1 always unlocked regardless of progress record ✓
+
+#### Learn ✓
+- `hooks/useCurriculum.ts` — useQuery wrapping getSections ✓
+- `components/learn/LearnHeader.tsx` — title, subtitle, streak badge, overall progress bar ✓
+- `components/learn/SectionCard.tsx` — category badge (cycles primary/purple/gold by order), XP badge, unlocked/locked/completed states, subtopic tags, Continue button ✓
+- `app/(tabs)/learn.tsx` — wired with useCurriculum + cached useHomeScreen, loading/error states, "HOW IT WORKS" alert ✓
+
+#### Listen ✓
+- `hooks/useStories.ts` — useQuery wrapping getStories ✓
+- `components/listen/ListenHeader.tsx` — title, subtitle, streak badge ✓
+- `components/listen/CategoryTabs.tsx` — horizontal scrollable filter pills, active = green filled, categories extracted from stories ✓
+- `components/listen/FeaturedStoryCard.tsx` — trending story card with decorative waveform bars, "Play Now" button ✓
+- `components/listen/StoryRow.tsx` — difficulty badge (BEG/INT/ADV colored), title, description, duration/XP, completed ✓ indicator ✓
+- `app/(tabs)/listen.tsx` — client-side category filtering, featured card on "All Stories" tab only, empty state ✓
+
+#### Community ✓
+- `hooks/useCommunity.ts` — useSuggestedPartners, useLeaderboard(tab), useSendPartnerRequest (invalidates cache on success) ✓
+- `components/community/CommunityHeader.tsx` — label, streak badge, "Ready to level up?" promo card ✓
+- `components/community/CommunityTabs.tsx` — underline-style tab switcher (Suggested / My Partners / Leaderboard) ✓
+- `components/community/PartnerCard.tsx` — letter avatar, name/handle, heritage speaker badge, bio, availability/format chips, match % badge, Connect/Pending/Accept button ✓
+- `components/community/LeaderboardView.tsx` — weekly challenge card, segment control sub-tabs (This week/All time/Partners), ranked learner list with gold #1 ✓
+- `app/(tabs)/community.tsx` — tab state, connect mutation with per-card loading state, My Partners placeholder ✓
 
 ---
 
 ## In Progress
 
-- Nothing yet
+- Nothing
 
 ---
 
 ## Next
 
-### Phase 4 — Screens
+### Phase 4 — Remaining Screen
 
-- [ ] Home — `hooks/useHomeScreen.ts`, `components/home/`, `app/(tabs)/index.tsx`
-- [ ] Learn — `hooks/useCurriculum.ts`, `components/learn/`, `app/(tabs)/learn.tsx`
-- [ ] Listen — `hooks/useStories.ts`, `components/listen/`, `app/(tabs)/listen.tsx`
-- [ ] Community — `hooks/useCommunity.ts`, `components/community/`, `app/(tabs)/community.tsx`
 - [ ] Profile — `hooks/useProfile.ts`, `components/profile/`, `app/(tabs)/profile.tsx`
 
-### Phase 5 — Polish
+### Phase 5 — Lesson Flow
 
-- [ ] Extract shared primitives into `components/ui/` (Button, Card, Input, etc.)
+- [ ] Lesson screen — template → practice → quiz → review flow (`lesson-flow.png`)
+- [ ] Story player screen — audio playback, transcript, tips
+
+### Phase 6 — Polish
+
+- [ ] Vocab review (SRS) flow
+- [ ] Pull-to-refresh on all screens
+- [ ] Haptic feedback on interactions
+- [ ] Skeleton loading states

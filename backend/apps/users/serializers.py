@@ -4,7 +4,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from rest_framework import serializers
 
-from .models import Level, UserLevel, UserProfile
+from .models import Achievement, Level, UserAchievement, UserLevel, UserProfile
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -45,21 +45,52 @@ class RegisterSerializer(serializers.ModelSerializer):
 class LevelSerializer(serializers.ModelSerializer):
     class Meta:
         model = Level
-        fields = ['name', 'subtitle', 'xp_required']
+        fields = ['name', 'subtitle', 'description', 'xp_required', 'order']
 
 
 class UserLevelSerializer(serializers.ModelSerializer):
     current_level = LevelSerializer(read_only=True)
+    level_percentage = serializers.SerializerMethodField()
+    next_level_name = serializers.SerializerMethodField()
 
     class Meta:
         model = UserLevel
-        fields = ['current_level', 'xp_into_level']
+        fields = ['current_level', 'xp_into_level', 'level_percentage', 'next_level_name']
+
+    def get_level_percentage(self, obj):
+        xp_required = obj.current_level.xp_required
+        if xp_required <= 0:
+            return 0
+        next_level = Level.objects.filter(order__gt=obj.current_level.order).order_by('order').first()
+        if next_level is None:
+            return 100
+        return min(100, round(obj.xp_into_level / xp_required * 100))
+
+    def get_next_level_name(self, obj):
+        next_level = Level.objects.filter(order__gt=obj.current_level.order).order_by('order').first()
+        return next_level.name if next_level else None
+
+
+class AchievementSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Achievement
+        fields = ['key', 'title', 'icon', 'description']
+
+
+class UserAchievementSerializer(serializers.ModelSerializer):
+    achievement = AchievementSerializer(read_only=True)
+
+    class Meta:
+        model = UserAchievement
+        fields = ['achievement', 'earned_at']
 
 
 class ProfileSerializer(serializers.ModelSerializer):
     username = serializers.SerializerMethodField()
     email = serializers.EmailField(source='user.email', required=False)
     level = serializers.SerializerMethodField()
+    achievements = serializers.SerializerMethodField()
+    partners_count = serializers.SerializerMethodField()
 
     class Meta:
         model = UserProfile
@@ -68,7 +99,7 @@ class ProfileSerializer(serializers.ModelSerializer):
             'handle', 'avatar', 'location', 'is_diaspora',
             'joined_date', 'total_xp', 'current_streak', 'last_active_date',
             'daily_reminder_time', 'audio_autoplay', 'dark_mode', 'transliteration',
-            'level',
+            'level', 'achievements', 'partners_count',
         ]
         read_only_fields = ['joined_date', 'total_xp', 'current_streak', 'last_active_date']
 
@@ -80,6 +111,18 @@ class ProfileSerializer(serializers.ModelSerializer):
             return UserLevelSerializer(obj.user.level).data
         except UserLevel.DoesNotExist:
             return None
+
+    def get_achievements(self, obj):
+        user_achievements = (
+            obj.user.achievements
+            .select_related('achievement')
+            .order_by('earned_at')
+        )
+        return UserAchievementSerializer(user_achievements, many=True).data
+
+    def get_partners_count(self, obj):
+        from apps.community.models import Partner
+        return Partner.objects.filter(user=obj.user).count()
 
     def update(self, instance, validated_data):
         user_fields = validated_data.pop('user', {})

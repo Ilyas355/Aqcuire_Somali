@@ -44,12 +44,28 @@ export interface RefreshResponse {
 export interface Level {
   name: string;
   subtitle: string;
+  description: string;
   xp_required: number;
+  order: number;
 }
 
 export interface UserLevel {
   current_level: Level;
   xp_into_level: number;
+  level_percentage: number;
+  next_level_name: string | null;
+}
+
+export interface Achievement {
+  key: string;
+  title: string;
+  icon: string;
+  description: string;
+}
+
+export interface UserAchievement {
+  achievement: Achievement;
+  earned_at: string;
 }
 
 export interface Profile {
@@ -68,6 +84,8 @@ export interface Profile {
   dark_mode: boolean;
   transliteration: boolean;
   level: UserLevel | null;
+  achievements: UserAchievement[];
+  partners_count: number;
 }
 
 export interface UpdateProfileRequest {
