@@ -1,41 +1,44 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
-
 import { Platform } from 'react-native';
-
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
 
 export const Colors = {
   light: {
     text: '#11181C',
     background: '#fff',
-    tint: tintColorLight,
+    tint: '#22C55E',
     icon: '#687076',
     tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
+    tabIconSelected: '#22C55E',
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
+    text: '#FFFFFF',
+    background: '#0A0A0A',
+    tint: '#22C55E',
+    icon: '#6B7280',
+    tabIconDefault: '#6B7280',
+    tabIconSelected: '#22C55E',
   },
+};
+
+export const AppColors = {
+  background: '#0A0A0A',
+  card: '#111111',
+  primary: '#22C55E',
+  primaryMuted: '#052E16',
+  purple: '#7C3AED',
+  purpleMuted: '#2E1065',
+  gold: '#F59E0B',
+  goldMuted: '#422006',
+  textPrimary: '#FFFFFF',
+  textSecondary: '#6B7280',
+  error: '#EF4444',
+  border: '#222222',
 };
 
 export const Fonts = Platform.select({
   ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
     sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
     serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
     rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
     mono: 'ui-monospace',
   },
   default: {

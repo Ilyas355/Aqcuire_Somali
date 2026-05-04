@@ -177,6 +177,7 @@ export interface CurrentSubtopic {
 
 export interface HomeScreenResponse {
   greeting_level: string | null;
+  level_description: string | null;
   current_subtopic: CurrentSubtopic | null;
   overall_progress: {
     percentage: number;
@@ -186,6 +187,7 @@ export interface HomeScreenResponse {
   user_xp: number;
   user_streak: number;
   user_level_percentage: number;
+  next_level_name: string | null;
 }
 
 export interface SubtopicProgressUpdateRequest {

@@ -1,4 +1,4 @@
-import { QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { focusManager, QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   createContext,
   ReactNode,
@@ -8,6 +8,11 @@ import {
   useRef,
   useState,
 } from 'react';
+import { AppState } from 'react-native';
+
+AppState.addEventListener('change', (status) => {
+  focusManager.setFocused(status === 'active');
+});
 
 import {
   clearTokens,

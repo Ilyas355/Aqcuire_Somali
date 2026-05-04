@@ -31,6 +31,28 @@
 - `community/serializers.py` — PartnerProfileSerializer, SuggestedPartnerSerializer, LeaderboardEntrySerializer, WeeklyChallengeSerializer ✓
 - `community/views.py` — SuggestedPartnersView, PartnerRequestView, LeaderboardView ✓
 - `community/urls.py` — partners/suggested/, partners/request/<int:pk>/, leaderboard/ ✓
+- All 5 `admin.py` files registered — UserProfile, Level, UserLevel, Achievement, UserAchievement, all curriculum models, all progress models, all content models, all community models ✓
+
+### Phase 2 — Frontend Foundation ✓
+
+- `types/api.ts` — TypeScript interfaces for every API response ✓
+- `api/api.ts` — typed async function per endpoint ✓
+- `context/AuthContext.tsx` — global auth state + token logic ✓
+
+### Phase 3 — Auth Flow ✓
+
+- `app/(auth)/_layout.tsx` — Stack layout, dark background, slide animation ✓
+- `app/(auth)/login.tsx` — login form, error handling, focus chain ✓
+- `app/(auth)/register.tsx` — register form, field-level errors, focus chain ✓
+- `app/_layout.tsx` — AuthProvider wrapper, auth gate (useSegments + router.replace) ✓
+- `app/(tabs)/_layout.tsx` — 5-tab layout with Ionicons, AppColors, HapticTab ✓
+- `app/(tabs)/index.tsx` — Home placeholder with logout button ✓
+- `app/(tabs)/learn.tsx` — placeholder ✓
+- `app/(tabs)/listen.tsx` — placeholder ✓
+- `app/(tabs)/community.tsx` — placeholder ✓
+- `app/(tabs)/profile.tsx` — placeholder ✓
+- `.env` — EXPO_PUBLIC_API_URL set, Django ALLOWED_HOSTS updated ✓
+- End-to-end auth flow tested on iOS device ✓
 
 ---
 
@@ -41,27 +63,6 @@
 ---
 
 ## Next
-
-### Phase 1 — Backend
-
-- [x] `users` — `serializers.py`, `views.py`, `urls.py`
-- [x] `curriculum` — `serializers.py`, `views.py`, `urls.py`
-- [x] `progress` — `serializers.py`, `views.py`, `urls.py`
-- [x] `content` — `serializers.py`, `views.py`, `urls.py`
-- [x] `community` — `serializers.py`, `views.py`, `urls.py`
-- [x] Run migrations across all 5 apps
-
-### Phase 2 — Frontend Foundation
-
-- [x] `types/api.ts` — TypeScript interfaces for every API response
-- [x] `api/api.ts` — typed async function per endpoint
-- [x] `context/AuthContext.tsx` — global auth state + token logic
-
-### Phase 3 — Auth Flow
-
-- [ ] `app/(auth)/_layout.tsx`
-- [ ] `app/(auth)/login.tsx`
-- [ ] `app/(auth)/register.tsx`
 
 ### Phase 4 — Screens
 

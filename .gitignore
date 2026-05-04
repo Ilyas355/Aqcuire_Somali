@@ -20,3 +20,5 @@ dist/
 # General
 .DS_Store
 *.log
+
+live_screens/
