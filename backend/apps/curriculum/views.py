@@ -24,7 +24,7 @@ class SectionListView(generics.ListAPIView):
 class SubtopicDetailView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = SubtopicDetailSerializer
-    queryset = Subtopic.objects.prefetch_related(
+    queryset = Subtopic.objects.select_related('section').prefetch_related(
         'phrases__grammar_notes',
         'phrases__quiz_questions',
         'key_patterns',

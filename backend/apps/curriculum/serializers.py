@@ -65,11 +65,14 @@ class SubtopicDetailSerializer(serializers.ModelSerializer):
     key_patterns = KeyPatternSerializer(many=True, read_only=True)
     common_mistakes = CommonMistakeSerializer(many=True, read_only=True)
     survival_lines = SurvivalLineSerializer(many=True, read_only=True)
+    section_title = serializers.CharField(source='section.title', read_only=True)
+    section_xp_reward = serializers.IntegerField(source='section.xp_reward', read_only=True)
 
     class Meta:
         model = Subtopic
         fields = [
             'id', 'title', 'description', 'order',
+            'section_title', 'section_xp_reward',
             'phrases', 'key_patterns', 'common_mistakes', 'survival_lines',
         ]
 
