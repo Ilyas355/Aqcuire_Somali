@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.curriculum.models import QuizQuestion, Section, Subtopic
-from apps.users.models import UserLevel, UserProfile
+from apps.users.models import Level, UserLevel, UserProfile
 
 from .models import QuizAttempt, UserSectionProgress, UserSubtopicProgress, VocabReview
 from .serializers import (
@@ -37,15 +37,25 @@ class HomeScreenView(APIView):
 
         try:
             user_level = user.level
-            greeting_level = user_level.current_level.name
-            level_xp_required = user_level.current_level.xp_required
+            current_level = user_level.current_level
+            greeting_level = current_level.name
+            level_description = current_level.description
+            level_xp_required = current_level.xp_required
             user_level_percentage = (
                 round(user_level.xp_into_level / level_xp_required * 100)
                 if level_xp_required > 0 else 0
             )
+            next_level = Level.objects.filter(order__gt=current_level.order).order_by('order').first()
+            if next_level is None:
+                next_level_name = None
+                user_level_percentage = 100
+            else:
+                next_level_name = next_level.name
         except UserLevel.DoesNotExist:
             greeting_level = None
+            level_description = None
             user_level_percentage = 0
+            next_level_name = None
 
         current_subtopic_progress = (
             UserSubtopicProgress.objects
@@ -79,6 +89,7 @@ class HomeScreenView(APIView):
 
         return Response({
             'greeting_level': greeting_level,
+            'level_description': level_description,
             'current_subtopic': current_subtopic,
             'overall_progress': {
                 'percentage': overall_percentage,
@@ -88,6 +99,7 @@ class HomeScreenView(APIView):
             'user_xp': profile.total_xp,
             'user_streak': profile.current_streak,
             'user_level_percentage': user_level_percentage,
+            'next_level_name': next_level_name,
         })
 
 

@@ -91,6 +91,8 @@ class SectionSerializer(serializers.ModelSerializer):
         return self.context.get('progress_map', {}).get(obj.id)
 
     def get_is_unlocked(self, obj):
+        if obj.order == 1:
+            return True
         progress = self._get_progress(obj)
         return progress.is_unlocked if progress else False
 
