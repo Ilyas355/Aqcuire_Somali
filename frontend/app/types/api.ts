@@ -268,6 +268,7 @@ export interface StoryLine {
   english: string;
   speaker_name: string;
   audio_url: string;
+  timestamp_seconds: number;
   order: number;
   tips: StoryTip[];
 }
@@ -282,6 +283,7 @@ export interface StorySummary {
   xp_reward: number;
   is_trending: boolean;
   order: number;
+  audio_url: string;
   is_completed: boolean;
   last_line_position: number;
 }

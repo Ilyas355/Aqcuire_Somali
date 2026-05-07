@@ -14,7 +14,7 @@ class StoryLineSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = StoryLine
-        fields = ['id', 'somali', 'english', 'speaker_name', 'audio_url', 'order', 'tips']
+        fields = ['id', 'somali', 'english', 'speaker_name', 'audio_url', 'timestamp_seconds', 'order', 'tips']
 
 
 class StoryCategorySerializer(serializers.ModelSerializer):
@@ -33,7 +33,7 @@ class StoryListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'title', 'description', 'category', 'difficulty',
             'duration_seconds', 'xp_reward', 'is_trending', 'order',
-            'is_completed', 'last_line_position',
+            'audio_url', 'is_completed', 'last_line_position',
         ]
 
     def _get_progress(self, obj):
@@ -58,7 +58,7 @@ class StoryDetailSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'title', 'description', 'category', 'difficulty',
             'duration_seconds', 'xp_reward', 'is_trending', 'order',
-            'last_line_position', 'lines',
+            'audio_url', 'last_line_position', 'lines',
         ]
 
     def get_last_line_position(self, obj):

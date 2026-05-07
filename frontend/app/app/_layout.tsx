@@ -28,6 +28,7 @@ function RootNavigator() {
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="lesson/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="story/[id]" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style="light" />
     </>

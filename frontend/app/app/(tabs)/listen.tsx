@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
 
 import { CategoryTabs } from '@/components/listen/CategoryTabs';
 import { FeaturedStoryCard } from '@/components/listen/FeaturedStoryCard';
@@ -12,6 +13,7 @@ import { useStories } from '@/hooks/useStories';
 import type { StoryCategory } from '@/types/api';
 
 export default function ListenScreen() {
+  const router = useRouter();
   const { data: stories, isLoading, isError } = useStories();
   const { data: homeData } = useHomeScreen();
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
@@ -57,8 +59,8 @@ export default function ListenScreen() {
     return first ? `${first.difficulty.toUpperCase()} STORIES` : 'STORIES';
   }, [listedStories, selectedCategoryId, categories]);
 
-  const handleStoryPress = (_id: number) => {
-    // Story player screen will be wired here
+  const handleStoryPress = (id: number) => {
+    router.push(`/story/${id}`);
   };
 
   if (isLoading) {

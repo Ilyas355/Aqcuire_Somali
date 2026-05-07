@@ -110,8 +110,32 @@
 
 - [x] Lesson screen — template → practice → quiz → review steps (`lesson-flow.png`)
 - [x] Wire Continue button on Home and Learn screens to lesson route
-- [ ] Story player screen — audio playback, transcript, tips
 - [ ] Wire LevelUpModal trigger on section/level completion
+
+### Phase 5b — Story Player
+
+#### Backend ✓
+- [x] Add `timestamp_seconds: PositiveIntegerField(default=0)` to `StoryLine` model
+- [x] Add `audio_url: URLField(blank=True)` to `Story` model
+- [x] Run and apply migration
+- [x] Add `timestamp_seconds` to `StoryLineSerializer` fields
+- [x] Add `audio_url` to `StoryDetailSerializer` and `StoryListSerializer` fields
+- [x] Configure `MEDIA_ROOT` and `MEDIA_URL` in `settings.py`
+- [x] Add media file serving to `urls.py` (dev only)
+- [x] Seed Conversation 1 story + lines with timestamps via management command
+
+#### Frontend ✓
+- [x] Install `expo-av` for audio playback
+- [x] Add `timestamp_seconds` to `StoryLine` interface in `types/api.ts`
+- [x] Add `audio_url` to `StoryDetail` and `StorySummary` interfaces in `types/api.ts`
+- [x] Add `useStoryDetail(id)`, `useUpdateStoryProgress`, `useCompleteStory` to `hooks/useStories.ts`
+- [x] Build `components/story/StoryPlayerHeader.tsx` — title, back, XP badge
+- [x] Build `components/story/TranscriptToggle.tsx` — Somali / English toggle
+- [x] Build `components/story/TranscriptLine.tsx` — speaker, text, active highlight, tip dot, tap-to-seek
+- [x] Build `components/story/StoryPlayer.tsx` — play/pause, scrub bar, position/duration labels
+- [x] Build `app/story/[id].tsx` — full player screen: expo-av audio, active line tracking, tip modal, complete on finish
+- [x] Register `story/[id]` in root `_layout.tsx`
+- [x] Wire story row tap on Listen screen to navigate to `app/story/[id].tsx`
 
 ### Phase 6 — Polish
 

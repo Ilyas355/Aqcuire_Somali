@@ -28,7 +28,11 @@ export function LevelCard({ levelName, levelDescription, levelPercentage, nextLe
         <View style={styles.textGroup}>
           <Text style={styles.levelName}>{levelName ?? '—'}</Text>
           {levelDescription ? (
-            <Text style={styles.description}>"{levelDescription}"</Text>
+            <Text style={styles.description}>
+              {'“'}
+              {levelDescription}
+              {'”'}
+            </Text>
           ) : null}
         </View>
       </View>

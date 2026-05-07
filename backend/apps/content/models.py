@@ -27,6 +27,7 @@ class Story(models.Model):
     xp_reward = models.PositiveIntegerField()
     is_trending = models.BooleanField(default=False)
     order = models.PositiveIntegerField()
+    audio_url = models.URLField(blank=True, default='')
 
     class Meta:
         ordering = ['order']
@@ -45,7 +46,8 @@ class StoryLine(models.Model):
     somali = models.CharField(max_length=500)
     english = models.CharField(max_length=500)
     speaker_name = models.CharField(max_length=100)
-    audio_url = models.URLField(blank=True)
+    audio_url = models.URLField(blank=True, default='')
+    timestamp_seconds = models.PositiveIntegerField(default=0)
     order = models.PositiveIntegerField()
 
     class Meta:
