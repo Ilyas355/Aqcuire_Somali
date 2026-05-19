@@ -1,5 +1,6 @@
 from django.contrib.auth.models import User
 from django.db import models
+from django.db.models import F
 
 
 class StoryCategory(models.Model):
@@ -70,6 +71,27 @@ class StoryTip(models.Model):
         return f"Tip for: {self.story_line.somali[:60]}"
 
 
+class StoryQuizQuestion(models.Model):
+    story = models.ForeignKey(
+        Story,
+        on_delete=models.CASCADE,
+        related_name='quiz_questions',
+        db_index=True,
+    )
+    question_text = models.TextField()
+    correct_answer = models.CharField(max_length=500)
+    distractor_1 = models.CharField(max_length=500)
+    distractor_2 = models.CharField(max_length=500)
+    distractor_3 = models.CharField(max_length=500)
+    order = models.PositiveIntegerField()
+
+    class Meta:
+        ordering = ['order']
+
+    def __str__(self):
+        return f"[{self.story.title}] {self.question_text[:60]}"
+
+
 class UserStoryProgress(models.Model):
     user = models.ForeignKey(
         User,
@@ -90,3 +112,14 @@ class UserStoryProgress(models.Model):
 
     def __str__(self):
         return f"{self.user.username} — {self.story.title}"
+
+    def complete(self, story) -> int:
+        if self.is_completed:
+            return 0
+        from apps.users.models import UserProfile
+        self.is_completed = True
+        self.last_line_position = story.lines.count()
+        self.save(update_fields=['is_completed', 'last_line_position'])
+        xp_awarded = story.xp_reward
+        UserProfile.objects.filter(user=self.user).update(total_xp=F('total_xp') + xp_awarded)
+        return xp_awarded

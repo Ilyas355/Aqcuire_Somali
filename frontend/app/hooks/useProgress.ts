@@ -1,12 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { getVocabDue, reviewVocab } from '@/api/api';
-import type { ApiError, VocabDueItem } from '@/types/api';
+import { getVocabDue, getWeakQuestions, reviewVocab } from '@/api/api';
+import type { ApiError, VocabDueItem, WeakQuestion } from '@/types/api';
 
 export function useVocabDue() {
   return useQuery({
     queryKey: ['vocabDue'],
     queryFn: getVocabDue,
+  });
+}
+
+export function useWeakQuestions() {
+  return useQuery<WeakQuestion[], ApiError>({
+    queryKey: ['weakQuestions'],
+    queryFn: getWeakQuestions,
   });
 }
 

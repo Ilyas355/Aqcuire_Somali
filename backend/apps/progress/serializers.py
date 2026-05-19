@@ -32,3 +32,19 @@ class QuizSubmitSerializer(serializers.Serializer):
 
 class VocabReviewSerializer(serializers.Serializer):
     quality = serializers.IntegerField(min_value=0, max_value=5)
+
+
+class WeakQuestionSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    layer = serializers.CharField()
+    question_text = serializers.CharField()
+    correct_answer = serializers.CharField()
+    distractor_1 = serializers.CharField()
+    distractor_2 = serializers.CharField()
+    distractor_3 = serializers.CharField()
+    phrase_id = serializers.IntegerField()
+    phrase_somali = serializers.CharField()
+    phrase_english = serializers.CharField()
+    total_attempts = serializers.IntegerField()
+    correct_attempts = serializers.IntegerField()
+    last_correct = serializers.BooleanField()

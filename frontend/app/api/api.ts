@@ -23,6 +23,7 @@ import type {
   StoryDetail,
   StoryProgressUpdateRequest,
   StoryProgressUpdateResponse,
+  StoryQuizQuestion,
   StorySummary,
   SubtopicDetail,
   SubtopicProgressUpdateRequest,
@@ -33,6 +34,7 @@ import type {
   UpdateProfileRequest,
   VocabDueItem,
   VocabReviewRequest,
+  WeakQuestion,
 } from '../types/api';
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL;
@@ -197,6 +199,10 @@ export async function reviewVocab(id: number, data: VocabReviewRequest): Promise
   return request('PATCH', `/api/progress/vocab/${id}/review/`, data);
 }
 
+export async function getWeakQuestions(): Promise<WeakQuestion[]> {
+  return request('GET', '/api/progress/quiz/weak/');
+}
+
 // ─── Content ──────────────────────────────────────────────────────────────────
 
 export async function getStories(categoryId?: number): Promise<StorySummary[]> {
@@ -219,6 +225,10 @@ export async function updateStoryProgress(
 
 export async function completeStory(id: number): Promise<StoryCompleteResponse> {
   return request('POST', `/api/content/stories/${id}/complete/`);
+}
+
+export async function getStoryQuiz(id: number): Promise<StoryQuizQuestion[]> {
+  return request('GET', `/api/content/stories/${id}/quiz/`);
 }
 
 // ─── Community ────────────────────────────────────────────────────────────────

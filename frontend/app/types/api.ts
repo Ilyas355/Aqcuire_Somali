@@ -1,6 +1,6 @@
 // ─── Shared ──────────────────────────────────────────────────────────────────
 
-export type LessonStep = 'template' | 'practice' | 'quiz' | 'review';
+export type PracticeStep = 'flashcard' | 'quiz' | 'done';
 export type QuizLayer = 'recognition' | 'recall' | 'production';
 export type PartnerDisplayStatus = 'none' | 'pending' | 'received' | 'partner';
 export type PartnerRequestOutcome = 'pending' | 'accepted';
@@ -227,15 +227,31 @@ export interface HomeScreenResponse {
 }
 
 export interface SubtopicProgressUpdateRequest {
-  current_step: LessonStep;
+  current_step: PracticeStep;
   phrases_completed: number;
   is_completed: boolean;
 }
 
 export interface SubtopicProgressUpdateResponse {
-  current_step: LessonStep;
+  current_step: PracticeStep;
   phrases_completed: number;
   is_completed: boolean;
+}
+
+export interface WeakQuestion {
+  id: number;
+  layer: QuizLayer;
+  question_text: string;
+  correct_answer: string;
+  distractor_1: string;
+  distractor_2: string;
+  distractor_3: string;
+  phrase_id: number;
+  phrase_somali: string;
+  phrase_english: string;
+  total_attempts: number;
+  correct_attempts: number;
+  last_correct: boolean;
 }
 
 export interface QuizSubmitRequest {
@@ -293,6 +309,16 @@ export interface StoryLine {
   tips: StoryTip[];
 }
 
+export interface StoryQuizQuestion {
+  id: number;
+  question_text: string;
+  correct_answer: string;
+  distractor_1: string;
+  distractor_2: string;
+  distractor_3: string;
+  order: number;
+}
+
 export interface StorySummary {
   id: number;
   title: string;
@@ -306,6 +332,7 @@ export interface StorySummary {
   audio_url: string;
   is_completed: boolean;
   last_line_position: number;
+  is_locked: boolean;
 }
 
 export interface StoryDetail extends Omit<StorySummary, 'is_completed'> {

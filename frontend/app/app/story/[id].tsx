@@ -10,7 +10,7 @@ import { StoryPlayer } from '@/components/story/StoryPlayer';
 import { StoryPlayerHeader } from '@/components/story/StoryPlayerHeader';
 import { TranscriptLine } from '@/components/story/TranscriptLine';
 import { AppColors } from '@/constants/theme';
-import { useCompleteStory, useStoryDetail, useUpdateStoryProgress } from '@/hooks/useStories';
+import { useStoryDetail, useUpdateStoryProgress } from '@/hooks/useStories';
 import type { StoryLine } from '@/types/api';
 
 export default function StoryPlayerScreen() {
@@ -20,19 +20,23 @@ export default function StoryPlayerScreen() {
 
   const { data: story, isLoading, isError } = useStoryDetail(storyId);
   const { mutate: updateProgress } = useUpdateStoryProgress(storyId);
-  const { mutate: completeStory } = useCompleteStory();
+  const handleCompleteStory = () => router.push(`/story-quiz/${storyId}`);
 
   const soundRef = useRef<Audio.Sound | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [positionSeconds, setPositionSeconds] = useState(0);
   const [activeLineId, setActiveLineId] = useState<number | null>(null);
   const [tipLine, setTipLine] = useState<StoryLine | null>(null);
+  const [showCompleteButton, setShowCompleteButton] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const lineOffsetsRef = useRef<Record<number, number>>({});
-  const completedRef = useRef(false);
 
   useEffect(() => {
-    if (!story?.audio_url) return;
+    if (!story) return;
+    if (!story.audio_url) {
+      setShowCompleteButton(true);
+      return;
+    }
     let mounted = true;
 
     (async () => {
@@ -53,9 +57,8 @@ export default function StoryPlayerScreen() {
           if (!status.isLoaded || !mounted) return;
           setPositionSeconds(status.positionMillis / 1000);
           setIsPlaying(status.isPlaying);
-          if (status.didJustFinish && !completedRef.current) {
-            completedRef.current = true;
-            completeStory(storyId);
+          if (status.didJustFinish) {
+            setShowCompleteButton(true);
           }
         },
       );
@@ -173,15 +176,23 @@ export default function StoryPlayerScreen() {
               ))}
             </ScrollView>
 
-            <View style={styles.playerBar}>
-              <StoryPlayer
-                isPlaying={isPlaying}
-                positionSeconds={positionSeconds}
-                durationSeconds={story.duration_seconds}
-                onPlayPause={handlePlayPause}
-                onSeek={handleSeek}
-              />
-            </View>
+            {showCompleteButton && (
+              <Pressable style={styles.completeBtn} onPress={handleCompleteStory}>
+                <Text style={styles.completeBtnText}>Complete Story →</Text>
+              </Pressable>
+            )}
+
+            {story.audio_url ? (
+              <View style={styles.playerBar}>
+                <StoryPlayer
+                  isPlaying={isPlaying}
+                  positionSeconds={positionSeconds}
+                  durationSeconds={story.duration_seconds}
+                  onPlayPause={handlePlayPause}
+                  onSeek={handleSeek}
+                />
+              </View>
+            ) : null}
           </>
         )}
       </View>
@@ -245,6 +256,19 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 8,
     gap: 2,
+  },
+  completeBtn: {
+    marginHorizontal: 16,
+    marginVertical: 10,
+    backgroundColor: AppColors.primary,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  completeBtnText: {
+    color: AppColors.background,
+    fontSize: 15,
+    fontWeight: '700',
   },
   playerBar: {
     paddingHorizontal: 16,

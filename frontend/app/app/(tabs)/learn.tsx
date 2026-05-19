@@ -11,9 +11,10 @@ import { AppColors } from '@/constants/theme';
 import { useCurriculum, useSubtopicDetail } from '@/hooks/useCurriculum';
 import { useHomeScreen } from '@/hooks/useHomeScreen';
 import { useSubmitPracticeQuiz } from '@/hooks/usePractice';
+import { useWeakQuestions } from '@/hooks/useProgress';
 import type { QuizSubmitResponse } from '@/types/api';
 
-type Mode = 'picker' | 'flashcard' | 'quiz' | 'done';
+type Mode = 'picker' | 'flashcard' | 'quiz' | 'weak' | 'done';
 
 export default function PracticeScreen() {
   const { data: sections, isLoading: sectionsLoading, refetch, isRefetching } = useCurriculum();
@@ -29,7 +30,11 @@ export default function PracticeScreen() {
   const [correctCount, setCorrectCount] = useState(0);
 
   const { data: subtopic, isLoading: subtopicLoading } = useSubtopicDetail(selectedId);
+  const { data: weakQuestions = [] } = useWeakQuestions();
   const { mutate: submitQuiz } = useSubmitPracticeQuiz();
+
+  const [weakIndex, setWeakIndex] = useState(0);
+  const [weakResult, setWeakResult] = useState<QuizSubmitResponse | null>(null);
 
   const phrases = subtopic?.phrases ?? [];
   const phrasesWithQuiz = phrases.filter((p) => p.quiz_questions.length > 0);
@@ -84,6 +89,38 @@ export default function PracticeScreen() {
     setMode('picker');
   };
 
+  const handleStartWeak = () => {
+    setWeakIndex(0);
+    setWeakResult(null);
+    setCorrectCount(0);
+    setTotalXp(0);
+    setMode('weak');
+  };
+
+  const handleWeakAnswer = (questionId: number, answer: string) => {
+    submitQuiz(
+      { question_id: questionId, answer_given: answer },
+      {
+        onSuccess: (result) => {
+          setWeakResult(result);
+          if (result.is_correct) {
+            setTotalXp((xp) => xp + result.xp_awarded);
+            setCorrectCount((n) => n + 1);
+          }
+        },
+      },
+    );
+  };
+
+  const handleNextWeak = () => {
+    if (weakIndex < weakQuestions.length - 1) {
+      setWeakIndex((i) => i + 1);
+      setWeakResult(null);
+    } else {
+      setMode('done');
+    }
+  };
+
   if (sectionsLoading) {
     return (
       <ScreenWrapper scroll>
@@ -105,6 +142,17 @@ export default function PracticeScreen() {
       <View style={styles.content}>
         <PracticeHeader streak={homeData?.user_streak ?? 0} />
 
+        {mode === 'picker' && weakQuestions.length > 0 && (
+          <Pressable style={styles.weakBanner} onPress={handleStartWeak}>
+            <View style={styles.weakBannerLeft}>
+              <Text style={styles.weakBannerLabel}>WEAK SPOTS</Text>
+              <Text style={styles.weakBannerTitle}>Drill your mistakes</Text>
+              <Text style={styles.weakBannerSub}>{weakQuestions.length} question{weakQuestions.length !== 1 ? 's' : ''} to review</Text>
+            </View>
+            <Text style={styles.weakBannerArrow}>→</Text>
+          </Pressable>
+        )}
+
         {mode === 'picker' && (
           <SubtopicPicker
             sections={sections ?? []}
@@ -115,6 +163,12 @@ export default function PracticeScreen() {
         {(mode === 'flashcard' || mode === 'quiz') && (
           <Pressable style={styles.backLink} onPress={handleReset}>
             <Text style={styles.backLinkText}>← {selectedTitle}</Text>
+          </Pressable>
+        )}
+
+        {mode === 'weak' && (
+          <Pressable style={styles.backLink} onPress={handleReset}>
+            <Text style={styles.backLinkText}>← Weak spots</Text>
           </Pressable>
         )}
 
@@ -142,6 +196,30 @@ export default function PracticeScreen() {
           />
         )}
 
+        {mode === 'weak' && weakQuestions.length > 0 && (
+          <View style={styles.weakContext}>
+            <Text style={styles.weakContextLabel}>PHRASE</Text>
+            <Text style={styles.weakContextSomali}>{weakQuestions[weakIndex].phrase_somali}</Text>
+            <Text style={styles.weakContextEnglish}>{weakQuestions[weakIndex].phrase_english}</Text>
+            <View style={styles.weakStat}>
+              <Text style={styles.weakStatText}>
+                {weakQuestions[weakIndex].correct_attempts}/{weakQuestions[weakIndex].total_attempts} correct
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {mode === 'weak' && weakQuestions.length > 0 && (
+          <PracticeQuizCard
+            question={weakQuestions[weakIndex]}
+            phraseIndex={weakIndex}
+            phraseTotal={weakQuestions.length}
+            onAnswer={handleWeakAnswer}
+            result={weakResult}
+            onNext={handleNextWeak}
+          />
+        )}
+
         {mode === 'done' && (
           <View style={styles.doneCard}>
             <Text style={styles.doneEmoji}>🎉</Text>
@@ -164,6 +242,11 @@ export default function PracticeScreen() {
             <Pressable style={styles.doneBtn} onPress={handleReset}>
               <Text style={styles.doneBtnText}>Practice another topic</Text>
             </Pressable>
+            {weakQuestions.length > 0 && (
+              <Pressable style={styles.weakDrillBtn} onPress={handleStartWeak}>
+                <Text style={styles.weakDrillBtnText}>Drill weak spots ({weakQuestions.length})</Text>
+              </Pressable>
+            )}
           </View>
         )}
       </View>
@@ -242,5 +325,84 @@ const styles = StyleSheet.create({
     color: AppColors.onPrimary,
     fontSize: 15,
     fontWeight: '700',
+  },
+  weakDrillBtn: {
+    borderWidth: 1,
+    borderColor: AppColors.error,
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+    marginTop: 4,
+  },
+  weakDrillBtnText: {
+    color: AppColors.error,
+    fontSize: 15,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  weakBanner: {
+    backgroundColor: AppColors.card,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: AppColors.error,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  weakBannerLeft: {
+    gap: 2,
+  },
+  weakBannerLabel: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: AppColors.error,
+    letterSpacing: 1,
+  },
+  weakBannerTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: AppColors.textPrimary,
+  },
+  weakBannerSub: {
+    fontSize: 12,
+    color: AppColors.textSecondary,
+  },
+  weakBannerArrow: {
+    fontSize: 18,
+    color: AppColors.error,
+    fontWeight: '700',
+  },
+  weakContext: {
+    backgroundColor: AppColors.card,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: AppColors.border,
+    padding: 16,
+    gap: 4,
+  },
+  weakContextLabel: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: AppColors.textTertiary,
+    letterSpacing: 1,
+  },
+  weakContextSomali: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: AppColors.textPrimary,
+  },
+  weakContextEnglish: {
+    fontSize: 13,
+    color: AppColors.textSecondary,
+  },
+  weakStat: {
+    marginTop: 4,
+  },
+  weakStatText: {
+    fontSize: 11,
+    color: AppColors.error,
+    fontWeight: '600',
   },
 });

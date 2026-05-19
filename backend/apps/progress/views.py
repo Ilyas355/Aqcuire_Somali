@@ -18,6 +18,7 @@ from .serializers import (
     SubtopicProgressUpdateSerializer,
     VocabDueSerializer,
     VocabReviewSerializer,
+    WeakQuestionSerializer,
 )
 
 
@@ -241,3 +242,12 @@ class VocabReviewView(APIView):
         serializer.is_valid(raise_exception=True)
         review.schedule(serializer.validated_data['quality'])
         return Response(VocabDueSerializer(review).data)
+
+
+class WeakQuestionsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        weak = QuizAttempt.weak_questions_for(request.user)
+        serializer = WeakQuestionSerializer(weak, many=True)
+        return Response(serializer.data)

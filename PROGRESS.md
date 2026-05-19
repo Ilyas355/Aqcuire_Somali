@@ -114,15 +114,29 @@ The core learning model is shifting to comprehensible input. Stories are the pri
 - [x] Remove `SectionCard`, `LearnHeader`, and all `components/lesson/` — no longer needed
 - [x] `useSubtopicDetail` moved to `useCurriculum.ts`; `useSubmitPracticeQuiz` in `hooks/usePractice.ts`
 
-#### 9b — Listen as the main tab
-- [ ] Move Listen tab to the first or second position in the tab bar (higher prominence)
-- [ ] Add end-of-story quiz flow — short MCQ quiz after `StoryCompleteView` is called
-- [ ] Backend: `StoryQuizQuestion` model (or reuse `QuizQuestion` linked to a story)
-- [ ] Backend: endpoint to fetch quiz questions for a story
-- [ ] Frontend: quiz screen triggered after story completion, before XP is awarded
-- [ ] Add a "Complete Story" button in the story player screen — tapping it confirms completion and navigates to the post-story quiz
-- [ ] Seed more stories — target at least 10 across Beginner / Intermediate / Advanced
-- [ ] Add story difficulty gating — Intermediate/Advanced locked until prerequisite stories completed
+#### 9b — Listen as the main tab ✓
+- [x] Listen tab already in position 2 (after Home) — no change needed
+- [x] Backend: `StoryQuizQuestion` model added to `content/models.py`, migration applied
+- [x] Backend: `GET /api/content/stories/<id>/quiz/` — `StoryQuizView` returns questions for a story
+- [x] Backend: `StoryCompleteView` refactored — XP/completion logic moved to `UserStoryProgress.complete(story)` model method; `apply_xp` wired in view
+- [x] Backend: `is_locked` added to `StoryListSerializer` — Intermediate locked until ≥1 Beginner complete, Advanced locked until ≥1 Intermediate complete; `completed_difficulties` set passed via context from `StoryListView`
+- [x] Backend: `seed_stories` management command — 9 new stories (4 Beginner, 3 Intermediate, 3 Advanced) each with lines + 3 quiz questions; Conversation 1 quiz questions added inline
+- [x] Frontend: `StoryQuizQuestion` interface + `is_locked` on `StorySummary` in `types/api.ts`
+- [x] Frontend: `getStoryQuiz(id)` in `api/api.ts`; `useStoryQuiz(id)` in `hooks/useStories.ts`
+- [x] Frontend: story player — removed auto-complete on audio finish; "Complete Story" button shown when audio ends or story has no audio; navigates to `/story-quiz/<id>`
+- [x] Frontend: `components/story/StoryQuizCard.tsx` — comprehension quiz card with local correct/wrong feedback, haptics
+- [x] Frontend: `app/story-quiz/[id].tsx` — full quiz flow: question dots → quiz → results (score + emoji) → collect XP → done; registered in root `_layout.tsx`
+
+#### 9d — Practice tab content refactor + weak-spot drilling ✓
+- [x] Backend: update `UserSubtopicProgress.current_step` choices from old 4-step values to `flashcard` / `quiz` / `done`; migration applied
+- [x] Backend: `QuizAttempt.weak_questions_for(user)` classmethod — annotates questions with attempt stats, filters where correct rate < 60% or last attempt was wrong
+- [x] Backend: `WeakQuestionsView` — `GET /api/progress/quiz/weak/` with `WeakQuestionSerializer`
+- [x] Backend: `quiz/weak/` registered in `progress/urls.py`
+- [x] Frontend: `PracticeStep` type replaces `LessonStep`; `WeakQuestion` interface added to `types/api.ts`
+- [x] Frontend: `getWeakQuestions()` added to `api/api.ts`
+- [x] Frontend: `useWeakQuestions()` hook added to `hooks/useProgress.ts`
+- [x] Frontend: `'weak'` mode added to Practice screen — phrase context card + quiz drill, back link, weak count badge
+- [x] Frontend: "Drill weak spots" banner on picker (hidden when 0 weak questions); secondary button on done screen
 
 #### 9c — Home screen adjustments ✓
 - [x] Remove `ContinueLearningCard` — replaced with `ContinueListeningCard`

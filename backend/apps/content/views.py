@@ -1,15 +1,14 @@
 from django.db import transaction
-from django.db.models import F
 from django.shortcuts import get_object_or_404
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.users.models import UserProfile
+from apps.users.models import UserLevel
 
-from .models import Story, UserStoryProgress
-from .serializers import StoryDetailSerializer, StoryListSerializer
+from .models import Story, StoryQuizQuestion, UserStoryProgress
+from .serializers import StoryDetailSerializer, StoryListSerializer, StoryQuizQuestionSerializer
 
 
 class StoryListView(generics.ListAPIView):
@@ -28,9 +27,20 @@ class StoryListView(generics.ListAPIView):
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
-        context['progress_map'] = {
+        progress_map = {
             p.story_id: p
             for p in UserStoryProgress.objects.filter(user=self.request.user)
+        }
+        context['progress_map'] = progress_map
+
+        story_difficulty_map = {
+            s.id: s.difficulty.lower()
+            for s in Story.objects.only('id', 'difficulty')
+        }
+        context['completed_difficulties'] = {
+            story_difficulty_map[sid]
+            for sid, p in progress_map.items()
+            if p.is_completed and sid in story_difficulty_map
         }
         return context
 
@@ -73,16 +83,23 @@ class StoryCompleteView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):
-        story = get_object_or_404(Story, pk=pk)
+        story = get_object_or_404(Story.objects.prefetch_related('lines'), pk=pk)
         with transaction.atomic():
             progress, _ = UserStoryProgress.objects.get_or_create(user=request.user, story=story)
-            xp_awarded = 0
-            if not progress.is_completed:
-                progress.is_completed = True
-                progress.last_line_position = story.lines.count()
-                progress.save(update_fields=['is_completed', 'last_line_position'])
-                xp_awarded = story.xp_reward
-                UserProfile.objects.filter(user=request.user).update(
-                    total_xp=F('total_xp') + xp_awarded
-                )
+            xp_awarded = progress.complete(story)
+            if xp_awarded > 0:
+                try:
+                    user_level = UserLevel.objects.select_related('current_level').get(user=request.user)
+                    user_level.apply_xp(xp_awarded)
+                except UserLevel.DoesNotExist:
+                    pass
         return Response({'is_completed': True, 'xp_awarded': xp_awarded})
+
+
+class StoryQuizView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = StoryQuizQuestionSerializer
+
+    def get_queryset(self):
+        story = get_object_or_404(Story, pk=self.kwargs['pk'])
+        return StoryQuizQuestion.objects.filter(story=story)

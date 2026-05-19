@@ -363,7 +363,7 @@ without flagging it first.
 - subtopic: ForeignKey → Subtopic
 - phrases_completed: PositiveIntegerField(default=0)
 - is_completed: BooleanField(default=False)
-- current_step: CharField choices [template, practice, quiz, review]
+- current_step: CharField choices [flashcard, quiz, done]
 - last_accessed: DateTimeField(auto_now)
 - Meta: unique_together = ['user', 'subtopic']
 

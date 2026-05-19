@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Story, StoryCategory, StoryLine, StoryTip, UserStoryProgress
+from .models import Story, StoryCategory, StoryLine, StoryQuizQuestion, StoryTip, UserStoryProgress
 
 
 @admin.register(StoryCategory)
@@ -27,6 +27,13 @@ class StoryLineAdmin(admin.ModelAdmin):
 @admin.register(StoryTip)
 class StoryTipAdmin(admin.ModelAdmin):
     list_display = ['story_line', 'tip_text']
+
+
+@admin.register(StoryQuizQuestion)
+class StoryQuizQuestionAdmin(admin.ModelAdmin):
+    list_display = ['story', 'question_text', 'order']
+    list_filter = ['story']
+    ordering = ['story__order', 'order']
 
 
 @admin.register(UserStoryProgress)

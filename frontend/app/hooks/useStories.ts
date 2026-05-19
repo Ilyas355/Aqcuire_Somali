@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { completeStory, getStories, getStory, updateStoryProgress } from '@/api/api';
+import { completeStory, getStories, getStory, getStoryQuiz, updateStoryProgress } from '@/api/api';
 import type { StoryProgressUpdateRequest } from '@/types/api';
 
 export function useStories() {
@@ -32,5 +32,13 @@ export function useCompleteStory() {
       queryClient.invalidateQueries({ queryKey: ['stories'] });
       queryClient.invalidateQueries({ queryKey: ['homeScreen'] });
     },
+  });
+}
+
+export function useStoryQuiz(id: number) {
+  return useQuery({
+    queryKey: ['storyQuiz', id],
+    queryFn: () => getStoryQuiz(id),
+    enabled: id > 0,
   });
 }

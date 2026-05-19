@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from django.contrib.auth.models import User
 from django.db import models
+from django.db.models import Count, OuterRef, Q, Subquery
 from django.utils import timezone
 
 from apps.curriculum.models import Phrase, QuizQuestion, Section, Subtopic
@@ -43,10 +44,9 @@ class UserSectionProgress(models.Model):
 
 class UserSubtopicProgress(models.Model):
     class Step(models.TextChoices):
-        TEMPLATE = 'template', 'Template'
-        PRACTICE = 'practice', 'Practice'
+        FLASHCARD = 'flashcard', 'Flashcard'
         QUIZ = 'quiz', 'Quiz'
-        REVIEW = 'review', 'Review'
+        DONE = 'done', 'Done'
 
     user = models.ForeignKey(
         User,
@@ -61,7 +61,7 @@ class UserSubtopicProgress(models.Model):
     )
     phrases_completed = models.PositiveIntegerField(default=0)
     is_completed = models.BooleanField(default=False)
-    current_step = models.CharField(max_length=20, choices=Step.choices, default=Step.TEMPLATE)
+    current_step = models.CharField(max_length=20, choices=Step.choices, default=Step.FLASHCARD)
     last_accessed = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -91,6 +91,46 @@ class QuizAttempt(models.Model):
     def __str__(self):
         result = 'correct' if self.is_correct else 'wrong'
         return f"{self.user.username} — {result} — {self.question}"
+
+    @classmethod
+    def weak_questions_for(cls, user) -> list[dict]:
+        last_attempt = cls.objects.filter(
+            user=user,
+            question=OuterRef('pk'),
+        ).order_by('-attempted_at')
+
+        questions_with_stats = (
+            QuizQuestion.objects
+            .filter(attempts__user=user)
+            .annotate(
+                total_attempts=Count('attempts', filter=Q(attempts__user=user)),
+                correct_attempts=Count('attempts', filter=Q(attempts__user=user, attempts__is_correct=True)),
+                last_correct=Subquery(last_attempt.values('is_correct')[:1]),
+            )
+            .select_related('phrase')
+            .distinct()
+        )
+
+        weak = []
+        for q in questions_with_stats:
+            ratio = q.correct_attempts / q.total_attempts if q.total_attempts > 0 else 0
+            if not q.last_correct or ratio < 0.6:
+                weak.append({
+                    'id': q.id,
+                    'layer': q.layer,
+                    'question_text': q.question_text,
+                    'correct_answer': q.correct_answer,
+                    'distractor_1': q.distractor_1,
+                    'distractor_2': q.distractor_2,
+                    'distractor_3': q.distractor_3,
+                    'phrase_id': q.phrase.id,
+                    'phrase_somali': q.phrase.somali,
+                    'phrase_english': q.phrase.english,
+                    'total_attempts': q.total_attempts,
+                    'correct_attempts': q.correct_attempts,
+                    'last_correct': bool(q.last_correct),
+                })
+        return weak
 
 
 class VocabReview(models.Model):
