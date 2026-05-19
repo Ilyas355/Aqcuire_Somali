@@ -12,7 +12,7 @@ export function CommunityHeader({ streak, onFindPartner }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.titleRow}>
-        <Text style={styles.subtitle}>Find your practice partner</Text>
+        <Text style={styles.title}>Connect</Text>
         {streak > 0 && (
           <View style={styles.streakBadge}>
             <Text style={styles.streakText}>🔥 {streak}</Text>
@@ -45,9 +45,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  subtitle: {
-    fontSize: 13,
-    color: AppColors.textSecondary,
+  title: {
+    fontSize: 30,
+    fontWeight: '800',
+    color: AppColors.textPrimary,
+    letterSpacing: -0.5,
   },
   streakBadge: {
     backgroundColor: AppColors.goldMuted,

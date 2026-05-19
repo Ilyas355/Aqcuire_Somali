@@ -1,5 +1,7 @@
 from django.contrib.auth import password_validation
+from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.mail import send_mail
 from django.db import IntegrityError
 from rest_framework import generics, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -7,7 +9,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import UserProfile
+from .models import PasswordResetToken, UserProfile
 from .serializers import ProfileSerializer, RegisterSerializer
 
 
@@ -75,3 +77,65 @@ class PasswordChangeView(APIView):
         request.user.set_password(new_password)
         request.user.save()
         return Response({'detail': 'Password updated successfully.'})
+
+
+class ForgotPasswordView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        email = request.data.get('email', '').strip()
+        if not email:
+            return Response({'detail': 'Email is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(email__iexact=email)
+            token = PasswordResetToken.generate_for(user)
+            send_mail(
+                subject='Your Aquire Somali reset code',
+                message=(
+                    f'Your password reset code is: {token.code}\n\n'
+                    f'This code expires in {PasswordResetToken.EXPIRY_MINUTES} minutes.\n\n'
+                    f'If you did not request this, ignore this email.'
+                ),
+                from_email=None,
+                recipient_list=[user.email],
+                fail_silently=True,
+            )
+        except User.DoesNotExist:
+            pass
+
+        return Response({'detail': 'If an account with that email exists, a reset code has been sent.'})
+
+
+class ResetPasswordView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        email = request.data.get('email', '').strip()
+        code = request.data.get('code', '').strip()
+        new_password = request.data.get('new_password', '')
+
+        if not email or not code or not new_password:
+            return Response(
+                {'detail': 'email, code, and new_password are required.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            user = User.objects.get(email__iexact=email)
+        except User.DoesNotExist:
+            return Response({'detail': 'Invalid or expired code.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        token = PasswordResetToken.objects.filter(user=user, code=code).first()
+        if not token or not token.is_valid():
+            return Response({'detail': 'Invalid or expired code.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            password_validation.validate_password(new_password, user)
+        except DjangoValidationError as e:
+            return Response({'detail': e.messages}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.set_password(new_password)
+        user.save()
+        token.consume()
+        return Response({'detail': 'Password reset successfully.'})

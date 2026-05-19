@@ -4,14 +4,17 @@ import { AppColors } from '@/constants/theme';
 
 interface Props {
   streak: number;
+  storyCount: number;
 }
 
-export function ListenHeader({ streak }: Props) {
+export function ListenHeader({ streak, storyCount }: Props) {
   return (
     <View style={styles.container}>
-      <View>
-        <Text style={styles.title}>Extra Listening</Text>
-        <Text style={styles.subtitle}>Real conversations, not Somali</Text>
+      <View style={styles.left}>
+        <Text style={styles.title}>Listen</Text>
+        <Text style={styles.subtitle}>
+          {storyCount} {storyCount === 1 ? 'story' : 'stories'} · Real Somali conversations
+        </Text>
       </View>
       {streak > 0 && (
         <View style={styles.streakBadge}>
@@ -28,15 +31,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
   },
+  left: {
+    gap: 3,
+  },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
+    fontSize: 30,
+    fontWeight: '800',
     color: AppColors.textPrimary,
+    letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: 13,
     color: AppColors.textSecondary,
-    marginTop: 2,
   },
   streakBadge: {
     backgroundColor: AppColors.goldMuted,

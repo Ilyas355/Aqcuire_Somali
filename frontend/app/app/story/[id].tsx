@@ -5,10 +5,10 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Audio } from 'expo-av';
 import { File, Paths } from 'expo-file-system';
 
+import { StoryIllustration } from '@/components/story/StoryIllustration';
 import { StoryPlayer } from '@/components/story/StoryPlayer';
 import { StoryPlayerHeader } from '@/components/story/StoryPlayerHeader';
 import { TranscriptLine } from '@/components/story/TranscriptLine';
-import { TranscriptToggle } from '@/components/story/TranscriptToggle';
 import { AppColors } from '@/constants/theme';
 import { useCompleteStory, useStoryDetail, useUpdateStoryProgress } from '@/hooks/useStories';
 import type { StoryLine } from '@/types/api';
@@ -26,7 +26,6 @@ export default function StoryPlayerScreen() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [positionSeconds, setPositionSeconds] = useState(0);
   const [activeLineId, setActiveLineId] = useState<number | null>(null);
-  const [language, setLanguage] = useState<'somali' | 'english'>('somali');
   const [tipLine, setTipLine] = useState<StoryLine | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   const lineOffsetsRef = useRef<Record<number, number>>({});
@@ -60,12 +59,19 @@ export default function StoryPlayerScreen() {
           }
         },
       );
-      soundRef.current = sound;
+
+      if (mounted) {
+        soundRef.current = sound;
+      } else {
+        // Component unmounted while audio was loading — unload immediately
+        sound.unloadAsync();
+      }
     })();
 
     return () => {
       mounted = false;
       soundRef.current?.unloadAsync();
+      soundRef.current = null;
     };
   }, [story?.audio_url]);
 
@@ -84,7 +90,7 @@ export default function StoryPlayerScreen() {
 
     const offset = lineOffsetsRef.current[active.id];
     if (offset !== undefined) {
-      scrollRef.current?.scrollTo({ y: Math.max(0, offset - 100), animated: true });
+      scrollRef.current?.scrollTo({ y: Math.max(0, offset - 80), animated: true });
     }
 
     const idx = sorted.findIndex((l) => l.id === active!.id);
@@ -112,71 +118,75 @@ export default function StoryPlayerScreen() {
     if (line.tips.length > 0) setTipLine(line);
   };
 
-  if (isLoading) {
-    return (
-      <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-        <View style={styles.centered}>
-          <ActivityIndicator color={AppColors.primary} size="large" />
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  if (isError || !story) {
-    return (
-      <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-        <View style={styles.centered}>
-          <Text style={styles.errorText}>Failed to load story. Please try again.</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  const speakers = story ? Array.from(new Set(story.lines.map((l) => l.speaker_name))) : [];
+  const leftSpeaker = speakers[0] ?? '';
+  const rightSpeaker = speakers[1] ?? '';
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       <StoryPlayerHeader
-        title={story.title}
-        xpReward={story.xp_reward}
+        title={story?.title ?? ''}
+        xpReward={story?.xp_reward ?? 0}
         onBack={() => router.back()}
       />
 
-      <ScrollView
-        ref={scrollRef}
-        style={styles.scroll}
-        contentContainerStyle={styles.transcript}
-        showsVerticalScrollIndicator={false}
-      >
-        <TranscriptToggle selected={language} onChange={setLanguage} />
-
-        <View style={styles.lines}>
-          {story.lines.map((line) => (
-            <View
-              key={line.id}
-              onLayout={(e) => {
-                lineOffsetsRef.current[line.id] = e.nativeEvent.layout.y;
-              }}
-            >
-              <TranscriptLine
-                line={line}
-                isActive={line.id === activeLineId}
-                language={language}
-                onPress={handleLinePress}
-              />
-            </View>
-          ))}
-        </View>
-      </ScrollView>
-
-      <View style={styles.playerBar}>
-        <StoryPlayer
-          isPlaying={isPlaying}
-          positionSeconds={positionSeconds}
-          durationSeconds={story.duration_seconds}
-          onPlayPause={handlePlayPause}
-          onSeek={handleSeek}
-        />
+      {/* Top half — image renders immediately, no API gate */}
+      <View style={styles.illustrationPane}>
+        <StoryIllustration leftSpeaker={leftSpeaker} rightSpeaker={rightSpeaker} />
       </View>
 
+      {/* Bottom half — transcript + player */}
+      <View style={styles.bottomPane}>
+        {isLoading && (
+          <View style={styles.centered}>
+            <ActivityIndicator color={AppColors.primary} size="large" />
+          </View>
+        )}
+
+        {isError && !story && (
+          <View style={styles.centered}>
+            <Text style={styles.errorText}>Failed to load story. Please try again.</Text>
+          </View>
+        )}
+
+        {story && (
+          <>
+            <ScrollView
+              ref={scrollRef}
+              style={styles.scroll}
+              contentContainerStyle={styles.transcriptContent}
+              showsVerticalScrollIndicator={false}
+            >
+              {story.lines.map((line) => (
+                <View
+                  key={line.id}
+                  onLayout={(e) => {
+                    lineOffsetsRef.current[line.id] = e.nativeEvent.layout.y;
+                  }}
+                >
+                  <TranscriptLine
+                    line={line}
+                    isActive={line.id === activeLineId}
+                    onPress={handleLinePress}
+                  />
+                </View>
+              ))}
+            </ScrollView>
+
+            <View style={styles.playerBar}>
+              <StoryPlayer
+                isPlaying={isPlaying}
+                positionSeconds={positionSeconds}
+                durationSeconds={story.duration_seconds}
+                onPlayPause={handlePlayPause}
+                onSeek={handleSeek}
+              />
+            </View>
+          </>
+        )}
+      </View>
+
+      {/* Tip bottom sheet */}
       <Modal
         visible={tipLine !== null}
         transparent
@@ -185,9 +195,8 @@ export default function StoryPlayerScreen() {
       >
         <Pressable style={styles.overlay} onPress={() => setTipLine(null)}>
           <Pressable style={styles.tipCard} onPress={() => {}}>
-            <Text style={styles.tipLineText}>
-              {tipLine ? (language === 'somali' ? tipLine.somali : tipLine.english) : ''}
-            </Text>
+            <Text style={styles.tipLineTextSomali}>{tipLine?.somali ?? ''}</Text>
+            <Text style={styles.tipLineTextEnglish}>{tipLine?.english ?? ''}</Text>
             {tipLine?.tips.map((tip) => (
               <View key={tip.id} style={styles.tipItem}>
                 <Text style={styles.tipTitle}>{tip.tip_text}</Text>
@@ -220,22 +229,26 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: 32,
   },
+  illustrationPane: {
+    flex: 1,
+  },
+  bottomPane: {
+    flex: 1,
+    borderTopWidth: 1,
+    borderTopColor: AppColors.border,
+  },
   scroll: {
     flex: 1,
   },
-  transcript: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 24,
-    gap: 8,
-  },
-  lines: {
-    marginTop: 12,
-    gap: 4,
+  transcriptContent: {
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 8,
+    gap: 2,
   },
   playerBar: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 10,
     borderTopWidth: 1,
     borderTopColor: AppColors.border,
   },
@@ -249,15 +262,20 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
-    gap: 16,
+    gap: 14,
     borderWidth: 1,
     borderColor: AppColors.border,
   },
-  tipLineText: {
+  tipLineTextSomali: {
     fontSize: 16,
     fontWeight: '700',
     color: AppColors.textPrimary,
-    marginBottom: 4,
+  },
+  tipLineTextEnglish: {
+    fontSize: 13,
+    color: AppColors.textSecondary,
+    fontStyle: 'italic',
+    marginTop: -8,
   },
   tipItem: {
     gap: 4,

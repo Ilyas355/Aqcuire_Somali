@@ -1,95 +1,160 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 
-import { Card } from '@/components/ui/Card';
 import { AppColors } from '@/constants/theme';
 
 interface Props {
   percentage: number;
   totalSections: number;
+  completedSections: number;
+  subtopicsRemaining: number;
 }
 
-function RingIndicator({ percentage }: { percentage: number }) {
-  const size = 64;
-  const strokeWidth = 5;
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (Math.min(100, Math.max(0, percentage)) / 100) * circumference;
+const RING = 80;
+const SW = 6;
+const R = (RING - SW) / 2;
+const CIRC = 2 * Math.PI * R;
 
+function SectionPips({ total, completed }: { total: number; completed: number }) {
   return (
-    <View style={styles.ringContainer}>
-      <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
-        <Circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke={AppColors.border}
-          strokeWidth={strokeWidth}
-          fill="none"
+    <View style={pip.row}>
+      {Array.from({ length: total }).map((_, i) => (
+        <View
+          key={i}
+          style={[
+            pip.dot,
+            i < completed ? pip.done : i === completed ? pip.active : pip.empty,
+          ]}
         />
-        <Circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke={AppColors.primary}
-          strokeWidth={strokeWidth}
-          fill="none"
-          strokeDasharray={circumference}
-          strokeDashoffset={strokeDashoffset}
-          strokeLinecap="round"
-          rotation="-90"
-          origin={`${size / 2}, ${size / 2}`}
-        />
-      </Svg>
-      <Text style={styles.ringText}>{percentage}%</Text>
+      ))}
     </View>
   );
 }
 
-export function OverallProgressCard({ percentage, totalSections }: Props) {
+const pip = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    gap: 5,
+    flexWrap: 'wrap',
+  },
+  dot: {
+    width: 10,
+    height: 8,
+    borderRadius: 4,
+  },
+  done: {
+    backgroundColor: AppColors.primary,
+  },
+  active: {
+    backgroundColor: AppColors.primaryMuted,
+    borderWidth: 1,
+    borderColor: AppColors.primary,
+  },
+  empty: {
+    backgroundColor: AppColors.surface3,
+  },
+});
+
+export function OverallProgressCard({ percentage, totalSections, completedSections, subtopicsRemaining }: Props) {
+  const offset = CIRC * (1 - percentage / 100);
+  const allDone = completedSections === totalSections && totalSections > 0;
+
   return (
-    <Card>
-      <View style={styles.row}>
-        <RingIndicator percentage={percentage} />
-        <View style={styles.textGroup}>
-          <Text style={styles.label}>Overall progress</Text>
-          <Text style={styles.sub}>
-            {totalSections} {totalSections === 1 ? 'section' : 'sections'} total
-          </Text>
+    <LinearGradient
+      colors={[AppColors.surface1, AppColors.surface0]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.card}
+    >
+      <View style={styles.ringWrap}>
+        <Svg width={RING} height={RING}>
+          <Circle
+            cx={RING / 2}
+            cy={RING / 2}
+            r={R}
+            stroke={AppColors.surface3}
+            strokeWidth={SW}
+            fill="none"
+          />
+          <Circle
+            cx={RING / 2}
+            cy={RING / 2}
+            r={R}
+            stroke={AppColors.primary}
+            strokeWidth={SW}
+            fill="none"
+            strokeDasharray={`${CIRC} ${CIRC}`}
+            strokeDashoffset={offset}
+            strokeLinecap="round"
+            transform={`rotate(-90 ${RING / 2} ${RING / 2})`}
+          />
+        </Svg>
+        <View style={styles.ringCenter}>
+          <Text style={styles.ringPct}>{percentage}%</Text>
+          <Text style={styles.ringDone}>done</Text>
         </View>
       </View>
-    </Card>
+
+      <View style={styles.textWrap}>
+        <Text style={styles.label}>COURSE PROGRESS</Text>
+        <SectionPips total={totalSections} completed={completedSections} />
+        <Text style={styles.sub}>
+          {allDone
+            ? `All ${totalSections} sections complete`
+            : `Section ${completedSections + 1} of ${totalSections} · ${subtopicsRemaining} left`}
+        </Text>
+      </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  row: {
+  card: {
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: AppColors.border,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
+    gap: 18,
   },
-  ringContainer: {
-    width: 64,
-    height: 64,
+  ringWrap: {
+    width: RING,
+    height: RING,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  ringText: {
-    color: AppColors.textPrimary,
-    fontWeight: '700',
-    fontSize: 15,
+  ringCenter: {
+    position: 'absolute',
+    alignItems: 'center',
   },
-  textGroup: {
+  ringPct: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: AppColors.textPrimary,
+    letterSpacing: -0.3,
+  },
+  ringDone: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: AppColors.textTertiary,
+    letterSpacing: 0.2,
+  },
+  textWrap: {
     flex: 1,
-    gap: 4,
+    gap: 8,
   },
   label: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: AppColors.textPrimary,
+    fontSize: 9,
+    fontWeight: '700',
+    color: AppColors.textTertiary,
+    letterSpacing: 1,
   },
   sub: {
-    fontSize: 13,
+    fontSize: 11,
     color: AppColors.textSecondary,
+    lineHeight: 15,
   },
 });

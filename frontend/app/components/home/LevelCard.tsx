@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
     color: AppColors.textPrimary,
   },
   description: {
-    fontSize: 13,
+    fontSize: 11,
     color: AppColors.textSecondary,
     fontStyle: 'italic',
     lineHeight: 18,

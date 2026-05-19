@@ -1,11 +1,14 @@
 import * as SecureStore from 'expo-secure-store';
 
 import type {
+  ForgotPasswordRequest,
   HomeScreenResponse,
   LeaderboardResponse,
   LeaderboardTab,
   LoginRequest,
   LoginResponse,
+  MyPartner,
+  OwnPartnerProfile,
   PartnerRequestResponse,
   PasswordChangeRequest,
   Profile,
@@ -14,6 +17,7 @@ import type {
   RefreshResponse,
   RegisterRequest,
   RegisterResponse,
+  ResetPasswordRequest,
   Section,
   StoryCompleteResponse,
   StoryDetail,
@@ -24,8 +28,11 @@ import type {
   SubtopicProgressUpdateRequest,
   SubtopicProgressUpdateResponse,
   SuggestedPartner,
+  SuggestedPartnerDetail,
+  UpdatePartnerProfileRequest,
   UpdateProfileRequest,
   VocabDueItem,
+  VocabReviewRequest,
 } from '../types/api';
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL;
@@ -50,24 +57,39 @@ async function getAccessToken(): Promise<string | null> {
   return SecureStore.getItemAsync('access_token');
 }
 
+// Singleton promise — prevents multiple simultaneous 401s from each firing
+// their own refresh request (which would burn the refresh token on the first
+// use and cause a 401 on the second, logging the user out).
+let refreshPromise: Promise<string> | null = null;
+
 async function refreshAccessToken(): Promise<string> {
-  const refresh = await SecureStore.getItemAsync('refresh_token');
-  if (!refresh) throw new Error('No refresh token');
+  if (refreshPromise) return refreshPromise;
 
-  const res = await fetch(`${BASE_URL}/api/auth/token/refresh/`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refresh }),
-  });
+  refreshPromise = (async () => {
+    try {
+      const refresh = await SecureStore.getItemAsync('refresh_token');
+      if (!refresh) throw new Error('No refresh token');
 
-  if (!res.ok) {
-    await clearTokens();
-    throw new Error('Session expired');
-  }
+      const res = await fetch(`${BASE_URL}/api/auth/token/refresh/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh }),
+      });
 
-  const data: RefreshResponse = await res.json();
-  await SecureStore.setItemAsync('access_token', data.access);
-  return data.access;
+      if (!res.ok) {
+        await clearTokens();
+        throw new Error('Session expired');
+      }
+
+      const data: RefreshResponse = await res.json();
+      await SecureStore.setItemAsync('access_token', data.access);
+      return data.access;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
 }
 
 // ─── Request helpers ──────────────────────────────────────────────────────────
@@ -83,7 +105,7 @@ async function unauthPost<T>(path: string, body: unknown): Promise<T> {
 }
 
 async function request<T>(
-  method: 'GET' | 'POST' | 'PATCH',
+  method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
   path: string,
   body?: unknown,
 ): Promise<T> {
@@ -106,6 +128,7 @@ async function request<T>(
   }
 
   if (!res.ok) throw await res.json().catch(() => ({ detail: 'Request failed' }));
+  if (res.status === 204) return undefined as T;
   return res.json();
 }
 
@@ -129,6 +152,14 @@ export async function updateProfile(data: UpdateProfileRequest): Promise<Profile
 
 export async function changePassword(data: PasswordChangeRequest): Promise<void> {
   return request('POST', '/api/auth/password/change/', data);
+}
+
+export async function forgotPassword(data: ForgotPasswordRequest): Promise<{ detail: string }> {
+  return unauthPost('/api/auth/password/forgot/', data);
+}
+
+export async function resetPassword(data: ResetPasswordRequest): Promise<{ detail: string }> {
+  return unauthPost('/api/auth/password/reset/', data);
 }
 
 // ─── Curriculum ───────────────────────────────────────────────────────────────
@@ -162,6 +193,10 @@ export async function getVocabDue(): Promise<VocabDueItem[]> {
   return request('GET', '/api/progress/vocab/due/');
 }
 
+export async function reviewVocab(id: number, data: VocabReviewRequest): Promise<VocabDueItem> {
+  return request('PATCH', `/api/progress/vocab/${id}/review/`, data);
+}
+
 // ─── Content ──────────────────────────────────────────────────────────────────
 
 export async function getStories(categoryId?: number): Promise<StorySummary[]> {
@@ -188,12 +223,44 @@ export async function completeStory(id: number): Promise<StoryCompleteResponse> 
 
 // ─── Community ────────────────────────────────────────────────────────────────
 
+export async function getMyPartnerProfile(): Promise<OwnPartnerProfile> {
+  return request('GET', '/api/community/partner-profile/');
+}
+
+export async function updatePartnerProfile(data: UpdatePartnerProfileRequest): Promise<OwnPartnerProfile> {
+  return request('PATCH', '/api/community/partner-profile/', data);
+}
+
+export async function getPartners(): Promise<MyPartner[]> {
+  return request('GET', '/api/community/partners/');
+}
+
 export async function getSuggestedPartners(): Promise<SuggestedPartner[]> {
   return request('GET', '/api/community/partners/suggested/');
 }
 
+export async function getSuggestedPartner(id: number): Promise<SuggestedPartnerDetail> {
+  return request('GET', `/api/community/partners/suggested/${id}/`);
+}
+
 export async function sendPartnerRequest(userId: number): Promise<PartnerRequestResponse> {
   return request('POST', `/api/community/partners/request/${userId}/`);
+}
+
+export async function rejectPartnerRequest(userId: number): Promise<void> {
+  return request('DELETE', `/api/community/partners/request/${userId}/`);
+}
+
+export async function removePartner(userId: number): Promise<void> {
+  return request('DELETE', `/api/community/partners/${userId}/`);
+}
+
+export async function patchPresence(): Promise<void> {
+  return request('PATCH', '/api/community/presence/');
+}
+
+export async function getOnlineCount(): Promise<{ online_count: number }> {
+  return request('GET', '/api/community/presence/count/');
 }
 
 export async function getLeaderboard(tab: LeaderboardTab = 'all_time'): Promise<LeaderboardResponse> {

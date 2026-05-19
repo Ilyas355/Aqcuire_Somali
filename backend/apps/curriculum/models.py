@@ -125,6 +125,12 @@ class QuizQuestion(models.Model):
         RECALL = 'recall', 'Recall'
         PRODUCTION = 'production', 'Production'
 
+    XP_BY_LAYER = {
+        Layer.RECOGNITION: 5,
+        Layer.RECALL: 10,
+        Layer.PRODUCTION: 15,
+    }
+
     phrase = models.ForeignKey(
         Phrase,
         on_delete=models.CASCADE,
@@ -140,3 +146,9 @@ class QuizQuestion(models.Model):
 
     def __str__(self):
         return f"[{self.layer}] {self.question_text[:60]}"
+
+    def check_answer(self, answer_given: str) -> bool:
+        return answer_given.strip().lower() == self.correct_answer.strip().lower()
+
+    def xp_for_correct(self) -> int:
+        return self.XP_BY_LAYER.get(self.layer, 0)

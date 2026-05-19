@@ -8,6 +8,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.content.models import Story, UserStoryProgress
 from apps.curriculum.models import QuizQuestion, Section, Subtopic
 from apps.users.models import Level, UserLevel, UserProfile
 
@@ -16,13 +17,8 @@ from .serializers import (
     QuizSubmitSerializer,
     SubtopicProgressUpdateSerializer,
     VocabDueSerializer,
+    VocabReviewSerializer,
 )
-
-XP_PER_LAYER = {
-    QuizQuestion.Layer.RECOGNITION: 5,
-    QuizQuestion.Layer.RECALL: 10,
-    QuizQuestion.Layer.PRODUCTION: 15,
-}
 
 
 class HomeScreenView(APIView):
@@ -57,26 +53,49 @@ class HomeScreenView(APIView):
             user_level_percentage = 0
             next_level_name = None
 
-        current_subtopic_progress = (
-            UserSubtopicProgress.objects
-            .filter(user=user, is_completed=False)
-            .select_related('subtopic__section')
-            .order_by('-last_accessed')
+        in_progress = (
+            UserStoryProgress.objects
+            .filter(user=user, is_completed=False, last_line_position__gt=0)
+            .select_related('story__category')
+            .order_by('-story__order')
             .first()
         )
-        current_subtopic = None
-        if current_subtopic_progress:
-            current_subtopic = {
-                'id': current_subtopic_progress.subtopic.id,
-                'title': current_subtopic_progress.subtopic.title,
-                'section': current_subtopic_progress.subtopic.section.title,
-                'current_step': current_subtopic_progress.current_step,
+        current_story = None
+        if in_progress:
+            s = in_progress.story
+            current_story = {
+                'id': s.id,
+                'title': s.title,
+                'difficulty': s.difficulty,
+                'duration_seconds': s.duration_seconds,
+                'xp_reward': s.xp_reward,
+                'last_line_position': in_progress.last_line_position,
+                'is_completed': False,
+                'category': s.category.name,
             }
+        else:
+            first_story = Story.objects.select_related('category').order_by('order').first()
+            if first_story:
+                current_story = {
+                    'id': first_story.id,
+                    'title': first_story.title,
+                    'difficulty': first_story.difficulty,
+                    'duration_seconds': first_story.duration_seconds,
+                    'xp_reward': first_story.xp_reward,
+                    'last_line_position': 0,
+                    'is_completed': False,
+                    'category': first_story.category.name,
+                }
 
         total_sections = Section.objects.count()
+        total_subtopics = Subtopic.objects.count()
         completed_sections = UserSectionProgress.objects.filter(
             user=user, is_completed=True
         ).count()
+        completed_subtopics = UserSubtopicProgress.objects.filter(
+            user=user, is_completed=True
+        ).count()
+        subtopics_remaining = max(0, total_subtopics - completed_subtopics)
         overall_percentage = (
             round(completed_sections / total_sections * 100)
             if total_sections > 0 else 0
@@ -90,10 +109,12 @@ class HomeScreenView(APIView):
         return Response({
             'greeting_level': greeting_level,
             'level_description': level_description,
-            'current_subtopic': current_subtopic,
+            'current_story': current_story,
             'overall_progress': {
                 'percentage': overall_percentage,
                 'section': total_sections,
+                'completed_sections': completed_sections,
+                'subtopics_remaining': subtopics_remaining,
             },
             'vocab_due_count': vocab_due_count,
             'user_xp': profile.total_xp,
@@ -127,9 +148,10 @@ class SubtopicProgressUpdateView(APIView):
             progress.current_step = data['current_step']
             progress.phrases_completed = phrases_completed
             progress.is_completed = is_completed
-            progress.save(update_fields=['current_step', 'phrases_completed', 'is_completed'])
+            progress.save(update_fields=['current_step', 'phrases_completed', 'is_completed', 'last_accessed'])
 
             if is_completed and not was_completed:
+                VocabReview.queue_phrases(request.user, subtopic)
                 section_progress, _ = UserSectionProgress.objects.get_or_create(
                     user=request.user,
                     section=subtopic.section,
@@ -138,6 +160,22 @@ class SubtopicProgressUpdateView(APIView):
                 UserSectionProgress.objects.filter(pk=section_progress.pk).update(
                     subtopics_completed=F('subtopics_completed') + 1
                 )
+                section_progress.refresh_from_db()
+                total_section_subtopics = Subtopic.objects.filter(section=subtopic.section).count()
+                if section_progress.subtopics_completed >= total_section_subtopics:
+                    UserSectionProgress.objects.filter(pk=section_progress.pk).update(is_completed=True)
+                    next_section = (
+                        Section.objects
+                        .filter(order__gt=subtopic.section.order)
+                        .order_by('order')
+                        .first()
+                    )
+                    if next_section:
+                        UserSectionProgress.objects.get_or_create(
+                            user=request.user,
+                            section=next_section,
+                            defaults={'is_unlocked': True},
+                        )
 
         return Response({
             'current_step': progress.current_step,
@@ -155,11 +193,8 @@ class QuizSubmitView(APIView):
         data = serializer.validated_data
 
         question = get_object_or_404(QuizQuestion, pk=data['question_id'])
-        is_correct = (
-            data['answer_given'].strip().lower() ==
-            question.correct_answer.strip().lower()
-        )
-        xp_awarded = XP_PER_LAYER.get(question.layer, 0) if is_correct else 0
+        is_correct = question.check_answer(data['answer_given'])
+        xp_awarded = question.xp_for_correct() if is_correct else 0
 
         QuizAttempt.objects.create(
             user=request.user,
@@ -173,6 +208,11 @@ class QuizSubmitView(APIView):
             UserProfile.objects.filter(user=request.user).update(
                 total_xp=F('total_xp') + xp_awarded
             )
+            try:
+                user_level = UserLevel.objects.select_related('current_level').get(user=request.user)
+                user_level.apply_xp(xp_awarded)
+            except UserLevel.DoesNotExist:
+                pass
 
         return Response({
             'is_correct': is_correct,
@@ -190,3 +230,14 @@ class VocabDueView(generics.ListAPIView):
             user=self.request.user,
             next_review__lte=timezone.now(),
         ).select_related('phrase')
+
+
+class VocabReviewView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, pk):
+        review = get_object_or_404(VocabReview, pk=pk, user=request.user)
+        serializer = VocabReviewSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        review.schedule(serializer.validated_data['quality'])
+        return Response(VocabDueSerializer(review).data)

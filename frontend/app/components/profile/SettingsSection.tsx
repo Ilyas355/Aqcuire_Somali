@@ -7,6 +7,8 @@ interface Props {
   profile: Profile;
   onUpdate: (data: UpdateProfileRequest) => void;
   onLogout: () => void;
+  onEditProfile: () => void;
+  onEditPartnerProfile: () => void;
 }
 
 function ToggleRow({
@@ -46,9 +48,7 @@ function ActionRow({ label, onPress }: { label: string; onPress: () => void }) {
   );
 }
 
-export function SettingsSection({ profile, onUpdate, onLogout }: Props) {
-  const handleEditProfile = () =>
-    Alert.alert('Edit profile', 'Profile editing will be available soon.');
+export function SettingsSection({ profile, onUpdate, onLogout, onEditProfile, onEditPartnerProfile }: Props) {
   const handlePrivacy = () =>
     Alert.alert('Privacy', 'Privacy settings will be available soon.');
   const handleFeedback = () =>
@@ -91,7 +91,9 @@ export function SettingsSection({ profile, onUpdate, onLogout }: Props) {
       </View>
 
       <View style={styles.card}>
-        <ActionRow label="Edit profile" onPress={handleEditProfile} />
+        <ActionRow label="Edit profile" onPress={onEditProfile} />
+        <View style={styles.sep} />
+        <ActionRow label="Partner profile" onPress={onEditPartnerProfile} />
         <View style={styles.sep} />
         <ActionRow label="Privacy" onPress={handlePrivacy} />
         <View style={styles.sep} />

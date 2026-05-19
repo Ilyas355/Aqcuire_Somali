@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AppColors } from '@/constants/theme';
+import { useAuth } from '@/context/AuthContext';
 import { useLeaderboard } from '@/hooks/useCommunity';
 import type { LeaderboardTab } from '@/types/api';
 
@@ -50,6 +51,7 @@ function LeaderboardEntry({
 export function LeaderboardView() {
   const [activeTab, setActiveTab] = useState<LeaderboardTab>('this_week');
   const { data, isLoading } = useLeaderboard(activeTab);
+  const { user } = useAuth();
 
   return (
     <View style={styles.container}>
@@ -103,6 +105,22 @@ export function LeaderboardView() {
           {data?.leaderboard.length === 0 && (
             <Text style={styles.empty}>No learners yet.</Text>
           )}
+        </View>
+      )}
+
+      {data?.my_rank && user && (
+        <View style={styles.myRankRow}>
+          <Text style={[styles.rank, styles.myRankText]}>#{data.my_rank.rank}</Text>
+          <View style={[styles.avatarCircle, styles.myRankAvatar]}>
+            <Text style={[styles.avatarLetter, styles.myRankAvatarLetter]}>
+              {user.username[0]?.toUpperCase() ?? '?'}
+            </Text>
+          </View>
+          <View style={styles.entryInfo}>
+            <Text style={[styles.entryName, styles.myRankText]}>You</Text>
+            <Text style={styles.entryHandle}>@{user.username}</Text>
+          </View>
+          <Text style={[styles.entryXP, styles.myRankText]}>{formatXP(data.my_rank.xp)}</Text>
         </View>
       )}
     </View>
@@ -235,5 +253,25 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: AppColors.textSecondary,
     fontSize: 14,
+  },
+  myRankRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: AppColors.primaryMuted,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: AppColors.primary,
+  },
+  myRankAvatar: {
+    backgroundColor: AppColors.primary,
+  },
+  myRankAvatarLetter: {
+    color: AppColors.background,
+  },
+  myRankText: {
+    color: AppColors.primary,
   },
 });

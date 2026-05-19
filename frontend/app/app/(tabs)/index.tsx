@@ -1,24 +1,27 @@
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
-import { ContinueLearningCard } from '@/components/home/ContinueLearningCard';
+import { ContinueListeningCard } from '@/components/home/ContinueListeningCard';
 import { GreetingHeader } from '@/components/home/GreetingHeader';
 import { LevelCard } from '@/components/home/LevelCard';
-import { OverallProgressCard } from '@/components/home/OverallProgressCard';
 import { ShortcutTiles } from '@/components/home/ShortcutTiles';
 import { ScreenWrapper } from '@/components/ui/ScreenWrapper';
+import { Skeleton, SkeletonCard } from '@/components/ui/Skeleton';
 import { AppColors } from '@/constants/theme';
 import { useHomeScreen } from '@/hooks/useHomeScreen';
 
 export default function HomeScreen() {
-  const { data, isLoading, isError } = useHomeScreen();
+  const { data, isLoading, isError, refetch, isRefetching } = useHomeScreen();
   const router = useRouter();
 
   if (isLoading) {
     return (
-      <ScreenWrapper>
-        <View style={styles.center}>
-          <ActivityIndicator color={AppColors.primary} size="large" />
+      <ScreenWrapper scroll>
+        <View style={styles.content}>
+          <Skeleton height={28} width="60%" />
+          <SkeletonCard><Skeleton height={80} /></SkeletonCard>
+          <SkeletonCard><Skeleton height={120} /></SkeletonCard>
+          <SkeletonCard><Skeleton height={60} /></SkeletonCard>
         </View>
       </ScreenWrapper>
     );
@@ -35,30 +38,25 @@ export default function HomeScreen() {
   }
 
   return (
-    <ScreenWrapper scroll>
+    <ScreenWrapper scroll onRefresh={refetch} isRefreshing={isRefetching}>
       <View style={styles.content}>
         <GreetingHeader
           levelName={data.greeting_level}
           streak={data.user_streak}
         />
-        <OverallProgressCard
-          percentage={data.overall_progress.percentage}
-          totalSections={data.overall_progress.section}
-        />
-        <ContinueLearningCard
-          subtopic={data.current_subtopic}
-          onContinue={() => {
-            if (data.current_subtopic) {
-              router.push(`/lesson/${data.current_subtopic.id}`);
+<ContinueListeningCard
+          story={data.current_story}
+          onPress={() => {
+            if (data.current_story) {
+              router.push(`/story/${data.current_story.id}`);
             } else {
-              router.navigate('/(tabs)/learn');
+              router.navigate('/(tabs)/listen');
             }
           }}
         />
         <ShortcutTiles
-          vocabDueCount={data.vocab_due_count}
-          onListenPress={() => router.navigate('/(tabs)/listen')}
-          onVocabPress={() => router.navigate('/(tabs)/learn')}
+          onPracticePress={() => router.navigate('/(tabs)/learn')}
+          onConnectPress={() => router.navigate('/(tabs)/community')}
         />
         <LevelCard
           levelName={data.greeting_level}
@@ -75,7 +73,8 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 20,
     paddingTop: 20,
-    gap: 16,
+    paddingBottom: 24,
+    gap: 20,
   },
   center: {
     flex: 1,

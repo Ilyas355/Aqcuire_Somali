@@ -27,8 +27,9 @@ function RootNavigator() {
       <Stack>
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="lesson/[id]" options={{ headerShown: false }} />
-        <Stack.Screen name="story/[id]" options={{ headerShown: false }} />
+<Stack.Screen name="story/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="partner/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="vocab-review" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style="light" />
     </>

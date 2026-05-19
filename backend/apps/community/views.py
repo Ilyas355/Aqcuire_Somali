@@ -1,54 +1,32 @@
-from datetime import timedelta
-
 from django.contrib.auth.models import User
-from django.db import transaction
-from django.db.models import Q, Sum
-from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
-from django.utils import timezone
+from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.users.models import UserProfile
 
-from .models import Partner, PartnerProfile, PartnerRequest, WeeklyChallenge
-from .serializers import LeaderboardEntrySerializer, SuggestedPartnerSerializer, WeeklyChallengeSerializer
+from .models import Partner, PartnerProfile, PartnerRequest, UserPresence, WeeklyChallenge
+from .serializers import LeaderboardEntrySerializer, MyPartnerSerializer, PartnerProfileUpdateSerializer, SuggestedPartnerDetailSerializer, SuggestedPartnerSerializer, WeeklyChallengeSerializer
+
+
+class PartnerProfileView(generics.RetrieveUpdateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = PartnerProfileUpdateSerializer
+    http_method_names = ['get', 'patch', 'head', 'options']
+
+    def get_object(self):
+        profile, _ = PartnerProfile.objects.get_or_create(user=self.request.user)
+        return profile
 
 
 class SuggestedPartnersView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        existing_partner_ids = Partner.objects.filter(
-            user=request.user
-        ).values_list('partner_id', flat=True)
-
-        rejected_by_me = PartnerRequest.objects.filter(
-            sender=request.user, status=PartnerRequest.Status.REJECTED
-        ).values_list('receiver_id', flat=True)
-
-        rejected_me = PartnerRequest.objects.filter(
-            receiver=request.user, status=PartnerRequest.Status.REJECTED
-        ).values_list('sender_id', flat=True)
-
-        candidates = (
-            User.objects
-            .filter(partner_profile__isnull=False)
-            .exclude(pk=request.user.pk)
-            .exclude(pk__in=existing_partner_ids)
-            .exclude(pk__in=rejected_by_me)
-            .exclude(pk__in=rejected_me)
-            .select_related('profile', 'partner_profile')
-        )
-
-        outgoing = set(PartnerRequest.objects.filter(
-            sender=request.user, status=PartnerRequest.Status.PENDING,
-        ).values_list('receiver_id', flat=True))
-
-        incoming = set(PartnerRequest.objects.filter(
-            receiver=request.user, status=PartnerRequest.Status.PENDING,
-        ).values_list('sender_id', flat=True))
+        candidates = Partner.suggested_candidates_for(request.user)
+        status_map = PartnerRequest.request_status_map_for(request.user)
 
         try:
             requester_partner_profile = request.user.partner_profile
@@ -60,14 +38,50 @@ class SuggestedPartnersView(APIView):
             many=True,
             context={
                 'request': request,
-                'request_status_map': {
-                    **{uid: 'pending' for uid in outgoing},
-                    **{uid: 'received' for uid in incoming},
-                },
+                'request_status_map': status_map,
                 'requester_partner_profile': requester_partner_profile,
             },
         )
         return Response(serializer.data)
+
+
+class SuggestedPartnerDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        candidate = get_object_or_404(
+            User.objects.select_related('profile', 'partner_profile', 'level__current_level', 'presence'),
+            pk=pk,
+        )
+        effective_status = Partner.effective_request_status(request.user, candidate)
+
+        try:
+            requester_partner_profile = request.user.partner_profile
+        except PartnerProfile.DoesNotExist:
+            requester_partner_profile = None
+
+        serializer = SuggestedPartnerDetailSerializer(
+            candidate,
+            context={
+                'request': request,
+                'request_status_map': {candidate.id: effective_status},
+                'requester_partner_profile': requester_partner_profile,
+            },
+        )
+        return Response(serializer.data)
+
+
+class PartnersListView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = MyPartnerSerializer
+
+    def get_queryset(self):
+        return (
+            Partner.objects
+            .filter(user=self.request.user)
+            .select_related('partner__profile', 'partner__partner_profile')
+            .order_by('-connected_at')
+        )
 
 
 class PartnerRequestView(APIView):
@@ -91,27 +105,31 @@ class PartnerRequestView(APIView):
                 return Response({'status': 'rejected'}, status=400)
             return Response({'status': existing.status})
 
-        with transaction.atomic():
-            mutual = PartnerRequest.objects.filter(
-                sender=receiver,
-                receiver=request.user,
-                status=PartnerRequest.Status.PENDING,
-            ).first()
+        status = PartnerRequest.send_or_accept(request.user, receiver)
+        return Response({'status': status})
 
-            if mutual:
-                mutual.status = PartnerRequest.Status.ACCEPTED
-                mutual.save(update_fields=['status'])
-                Partner.objects.get_or_create(user=request.user, partner=receiver)
-                Partner.objects.get_or_create(user=receiver, partner=request.user)
-                return Response({'status': 'accepted'})
+    def delete(self, request, pk):
+        sender = get_object_or_404(User, pk=pk)
+        partner_request = PartnerRequest.objects.filter(
+            sender=sender,
+            receiver=request.user,
+            status=PartnerRequest.Status.PENDING,
+        ).first()
+        if not partner_request:
+            return Response({'detail': 'No pending request from this user.'}, status=404)
+        partner_request.reject(request.user)
+        return Response(status=204)
 
-            partner_request = PartnerRequest.objects.create(
-                sender=request.user,
-                receiver=receiver,
-                status=PartnerRequest.Status.PENDING,
-            )
 
-        return Response({'status': partner_request.status})
+class PartnerDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, pk):
+        partner_user = get_object_or_404(User, pk=pk)
+        if not Partner.objects.filter(user=request.user, partner=partner_user).exists():
+            return Response({'detail': 'Partner not found.'}, status=404)
+        Partner.remove(request.user, partner_user)
+        return Response(status=204)
 
 
 class LeaderboardView(APIView):
@@ -119,52 +137,40 @@ class LeaderboardView(APIView):
 
     def get(self, request):
         tab = request.query_params.get('tab', 'all_time')
-        now = timezone.now()
 
         if tab == 'this_week':
-            week_start = (now - timedelta(days=now.weekday())).replace(
-                hour=0, minute=0, second=0, microsecond=0
-            )
-            profiles = (
-                UserProfile.objects
-                .select_related('user')
-                .annotate(
-                    weekly_xp=Coalesce(
-                        Sum(
-                            'user__quiz_attempts__xp_awarded',
-                            filter=Q(user__quiz_attempts__attempted_at__gte=week_start),
-                        ),
-                        0,
-                    )
-                )
-                .order_by('-weekly_xp')[:50]
-            )
+            profiles = UserProfile.leaderboard_this_week()
         elif tab == 'partners':
-            partner_ids = Partner.objects.filter(
-                user=request.user
-            ).values_list('partner_id', flat=True)
-            profiles = (
-                UserProfile.objects
-                .filter(user_id__in=partner_ids)
-                .select_related('user')
-                .order_by('-total_xp')[:50]
-            )
+            profiles = UserProfile.leaderboard_partners(request.user)
         else:
-            profiles = (
-                UserProfile.objects
-                .select_related('user')
-                .order_by('-total_xp')[:50]
-            )
+            profiles = UserProfile.leaderboard_all_time()
 
-        current_challenge = (
-            WeeklyChallenge.objects
-            .filter(starts_at__lte=now, ends_at__gte=now)
-            .select_related('reward_badge')
-            .first()
-        )
+        if tab == 'this_week':
+            my_rank = UserProfile.my_rank_this_week(request.user)
+        elif tab == 'partners':
+            my_rank = None
+        else:
+            my_rank = UserProfile.my_rank_all_time(request.user)
 
+        current_challenge = WeeklyChallenge.get_current()
         return Response({
             'tab': tab,
             'leaderboard': LeaderboardEntrySerializer(profiles, many=True).data,
             'current_challenge': WeeklyChallengeSerializer(current_challenge).data if current_challenge else None,
+            'my_rank': my_rank,
         })
+
+
+class PresenceView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request):
+        UserPresence.mark_online(request.user)
+        return Response(status=204)
+
+
+class PresenceCountView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response({'online_count': UserPresence.online_count()})

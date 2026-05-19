@@ -7,6 +7,7 @@ type BadgeVariant = 'primary' | 'purple' | 'gold' | 'outline';
 interface BadgeProps {
   label: string;
   variant?: BadgeVariant;
+  size?: 'sm' | 'md';
 }
 
 const containerVariant: Record<BadgeVariant, object> = {
@@ -23,10 +24,10 @@ const labelVariant: Record<BadgeVariant, object> = {
   outline: { color: AppColors.textSecondary },
 };
 
-export function Badge({ label, variant = 'outline' }: BadgeProps) {
+export function Badge({ label, variant = 'outline', size = 'sm' }: BadgeProps) {
   return (
-    <View style={[styles.container, containerVariant[variant]]}>
-      <Text style={[styles.label, labelVariant[variant]]}>{label}</Text>
+    <View style={[styles.container, containerVariant[variant], size === 'md' && styles.containerMd]}>
+      <Text style={[styles.label, labelVariant[variant], size === 'md' && styles.labelMd]}>{label}</Text>
     </View>
   );
 }
@@ -41,5 +42,12 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 12,
     fontWeight: '600',
+  },
+  containerMd: {
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+  },
+  labelMd: {
+    fontSize: 14,
   },
 });

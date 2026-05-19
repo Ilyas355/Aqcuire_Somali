@@ -61,7 +61,7 @@ class SubtopicSummarySerializer(serializers.ModelSerializer):
 
 
 class SubtopicDetailSerializer(serializers.ModelSerializer):
-    phrases = PhraseSerializer(many=True, read_only=True)
+    phrases = serializers.SerializerMethodField()
     key_patterns = KeyPatternSerializer(many=True, read_only=True)
     common_mistakes = CommonMistakeSerializer(many=True, read_only=True)
     survival_lines = SurvivalLineSerializer(many=True, read_only=True)
@@ -75,6 +75,10 @@ class SubtopicDetailSerializer(serializers.ModelSerializer):
             'section_title', 'section_xp_reward',
             'phrases', 'key_patterns', 'common_mistakes', 'survival_lines',
         ]
+
+    def get_phrases(self, obj):
+        phrases = self.context.get('sampled_phrases', obj.phrases.order_by('order'))
+        return PhraseSerializer(phrases, many=True, context=self.context).data
 
 
 class SectionSerializer(serializers.ModelSerializer):

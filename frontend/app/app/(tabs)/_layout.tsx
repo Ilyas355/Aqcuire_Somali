@@ -1,5 +1,5 @@
+import { StyleSheet, Text } from 'react-native';
 import { Tabs } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { AppColors } from '@/constants/theme';
@@ -11,10 +11,20 @@ export default function TabLayout() {
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarActiveTintColor: AppColors.primary,
-        tabBarInactiveTintColor: AppColors.textSecondary,
+        tabBarInactiveTintColor: AppColors.textQuaternary,
         tabBarStyle: {
-          backgroundColor: AppColors.card,
+          backgroundColor: AppColors.surface0,
           borderTopColor: AppColors.border,
+          borderTopWidth: 1,
+          height: 68,
+          paddingBottom: 12,
+          paddingTop: 8,
+        },
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontWeight: '600',
+          letterSpacing: 0.1,
+          marginTop: 2,
         },
       }}
     >
@@ -22,37 +32,57 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color }) => <Ionicons name="home" size={24} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="learn"
-        options={{
-          title: 'Learn',
-          tabBarIcon: ({ color }) => <Ionicons name="book" size={24} color={color} />,
+          tabBarIcon: ({ focused }) => (
+            <Text style={[styles.tabIcon, !focused && styles.tabIconInactive]}>🏠</Text>
+          ),
         }}
       />
       <Tabs.Screen
         name="listen"
         options={{
           title: 'Listen',
-          tabBarIcon: ({ color }) => <Ionicons name="headset" size={24} color={color} />,
+          tabBarIcon: ({ focused }) => (
+            <Text style={[styles.tabIcon, !focused && styles.tabIconInactive]}>🎧</Text>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="learn"
+        options={{
+          title: 'Practice',
+          tabBarIcon: ({ focused }) => (
+            <Text style={[styles.tabIcon, !focused && styles.tabIconInactive]}>✏️</Text>
+          ),
         }}
       />
       <Tabs.Screen
         name="community"
         options={{
-          title: 'Community',
-          tabBarIcon: ({ color }) => <Ionicons name="people" size={24} color={color} />,
+          title: 'Connect',
+          tabBarIcon: ({ focused }) => (
+            <Text style={[styles.tabIcon, !focused && styles.tabIconInactive]}>💬</Text>
+          ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color }) => <Ionicons name="person" size={24} color={color} />,
+          tabBarIcon: ({ focused }) => (
+            <Text style={[styles.tabIcon, !focused && styles.tabIconInactive]}>👤</Text>
+          ),
         }}
       />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  tabIcon: {
+    fontSize: 20,
+    lineHeight: 24,
+  },
+  tabIconInactive: {
+    opacity: 0.3,
+  },
+});

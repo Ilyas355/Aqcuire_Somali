@@ -28,3 +28,7 @@ class SubtopicProgressUpdateSerializer(serializers.Serializer):
 class QuizSubmitSerializer(serializers.Serializer):
     question_id = serializers.IntegerField()
     answer_given = serializers.CharField(max_length=500)
+
+
+class VocabReviewSerializer(serializers.Serializer):
+    quality = serializers.IntegerField(min_value=0, max_value=5)

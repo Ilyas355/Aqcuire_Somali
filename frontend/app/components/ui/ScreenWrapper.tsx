@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppColors } from '@/constants/theme';
@@ -7,9 +7,11 @@ import { AppColors } from '@/constants/theme';
 interface ScreenWrapperProps {
   children: ReactNode;
   scroll?: boolean;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 }
 
-export function ScreenWrapper({ children, scroll = false }: ScreenWrapperProps) {
+export function ScreenWrapper({ children, scroll = false, onRefresh, isRefreshing = false }: ScreenWrapperProps) {
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       {scroll ? (
@@ -17,6 +19,16 @@ export function ScreenWrapper({ children, scroll = false }: ScreenWrapperProps) 
           style={styles.scroll}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            onRefresh ? (
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={onRefresh}
+                tintColor={AppColors.primary}
+                colors={[AppColors.primary]}
+              />
+            ) : undefined
+          }
         >
           {children}
         </ScrollView>

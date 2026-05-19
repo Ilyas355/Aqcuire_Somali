@@ -2,7 +2,7 @@
 
 export type LessonStep = 'template' | 'practice' | 'quiz' | 'review';
 export type QuizLayer = 'recognition' | 'recall' | 'production';
-export type PartnerDisplayStatus = 'none' | 'pending' | 'received';
+export type PartnerDisplayStatus = 'none' | 'pending' | 'received' | 'partner';
 export type PartnerRequestOutcome = 'pending' | 'accepted';
 export type LeaderboardTab = 'all_time' | 'this_week' | 'partners';
 
@@ -105,6 +105,16 @@ export interface PasswordChangeRequest {
   new_password: string;
 }
 
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  email: string;
+  code: string;
+  new_password: string;
+}
+
 // ─── Curriculum ───────────────────────────────────────────────────────────────
 
 export interface GrammarNote {
@@ -188,20 +198,26 @@ export interface Section {
 
 // ─── Progress ─────────────────────────────────────────────────────────────────
 
-export interface CurrentSubtopic {
+export interface CurrentStory {
   id: number;
   title: string;
-  section: string;
-  current_step: LessonStep;
+  difficulty: string;
+  duration_seconds: number;
+  xp_reward: number;
+  last_line_position: number;
+  is_completed: boolean;
+  category: string;
 }
 
 export interface HomeScreenResponse {
   greeting_level: string | null;
   level_description: string | null;
-  current_subtopic: CurrentSubtopic | null;
+  current_story: CurrentStory | null;
   overall_progress: {
     percentage: number;
     section: number;
+    completed_sections: number;
+    subtopics_remaining: number;
   };
   vocab_due_count: number;
   user_xp: number;
@@ -247,6 +263,10 @@ export interface VocabDueItem {
   interval: number;
   ease_factor: number;
   repetitions: number;
+}
+
+export interface VocabReviewRequest {
+  quality: number;
 }
 
 // ─── Content ──────────────────────────────────────────────────────────────────
@@ -321,9 +341,47 @@ export interface SuggestedPartner {
   username: string;
   handle: string;
   avatar: string;
-  partner_profile: PartnerProfile;
+  partner_profile: PartnerProfile | null;
   request_status: PartnerDisplayStatus;
   match_percentage: number;
+  total_xp: number;
+  level_name: string | null;
+  current_section: string | null;
+  is_online: boolean;
+}
+
+export interface SuggestedPartnerDetail extends SuggestedPartner {
+  current_streak: number;
+  is_diaspora: boolean;
+}
+
+export interface MyPartner {
+  id: number;
+  username: string;
+  handle: string;
+  avatar: string;
+  partner_profile: PartnerProfile | null;
+  connected_at: string;
+}
+
+export interface ApiError {
+  status?: string;
+  detail?: string;
+  error?: string;
+}
+
+export interface OwnPartnerProfile {
+  bio: string;
+  is_heritage_speaker: boolean;
+  availability: string;
+  preferred_format: string;
+}
+
+export interface UpdatePartnerProfileRequest {
+  bio?: string;
+  is_heritage_speaker?: boolean;
+  availability?: string;
+  preferred_format?: string;
 }
 
 export interface PartnerRequestResponse {
@@ -349,4 +407,5 @@ export interface LeaderboardResponse {
   tab: LeaderboardTab;
   leaderboard: LeaderboardEntry[];
   current_challenge: WeeklyChallenge | null;
+  my_rank: { rank: number; xp: number } | null;
 }

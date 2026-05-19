@@ -17,14 +17,8 @@ export function ProgressBar({
 
   return (
     <View style={[styles.track, { height, borderRadius: height / 2 }]}>
-      <View
-        style={{
-          width: `${clamped}%`,
-          height,
-          backgroundColor: color,
-          borderRadius: height / 2,
-        }}
-      />
+      <View style={{ flex: clamped, height, backgroundColor: color, borderRadius: height / 2 }} />
+      <View style={{ flex: 100 - clamped }} />
     </View>
   );
 }
@@ -34,5 +28,6 @@ const styles = StyleSheet.create({
     width: '100%',
     backgroundColor: AppColors.border,
     overflow: 'hidden',
+    flexDirection: 'row',
   },
 });

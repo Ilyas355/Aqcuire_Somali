@@ -10,10 +10,6 @@ import {
 } from 'react';
 import { AppState } from 'react-native';
 
-AppState.addEventListener('change', (status) => {
-  focusManager.setFocused(status === 'active');
-});
-
 import {
   clearTokens,
   getProfile,
@@ -70,6 +66,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     logoutRef.current = logout;
   }, [logout]);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (status) => {
+      focusManager.setFocused(status === 'active');
+    });
+    return () => sub.remove();
+  }, []);
 
   useEffect(() => {
     async function bootstrap() {

@@ -1,94 +1,115 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 
 import { AppColors } from '@/constants/theme';
 
 interface Props {
-  vocabDueCount: number;
-  onListenPress: () => void;
-  onVocabPress: () => void;
+  onPracticePress: () => void;
+  onConnectPress: () => void;
 }
 
 interface TileProps {
-  icon: React.ComponentProps<typeof Ionicons>['name'];
-  iconColor: string;
-  iconBg: string;
+  icon: string;
   title: string;
   subtitle: string;
-  badge?: string;
+  accentColor: string;
+  iconBg: string;
+  gradientStart: string;
+  borderColor: string;
   onPress: () => void;
 }
 
-function Tile({ icon, iconColor, iconBg, title, subtitle, badge, onPress }: TileProps) {
+function Tile({ icon, title, subtitle, accentColor, iconBg, gradientStart, borderColor, onPress }: TileProps) {
   return (
-    <Pressable style={styles.tile} onPress={onPress}>
-      <View style={[styles.iconWrap, { backgroundColor: iconBg }]}>
-        <Ionicons name={icon} size={20} color={iconColor} />
+    <Pressable
+      style={({ pressed }) => [styles.tile, { borderColor }, pressed && styles.tilePressed]}
+      onPress={onPress}
+    >
+      <LinearGradient
+        colors={[gradientStart, AppColors.card]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+
+      <View style={[styles.iconCircle, { backgroundColor: iconBg }]}>
+        <Text style={styles.iconEmoji}>{icon}</Text>
       </View>
-      <Text style={styles.tileTitle}>{title}</Text>
-      <Text style={styles.tileSub}>{subtitle}</Text>
-      {badge ? <Text style={styles.badge}>{badge}</Text> : null}
+
+      <View style={styles.textGroup}>
+        <Text style={[styles.title, { color: accentColor }]}>{title}</Text>
+        <Text style={styles.subtitle}>{subtitle}</Text>
+      </View>
     </Pressable>
   );
 }
 
-export function ShortcutTiles({ vocabDueCount, onListenPress, onVocabPress }: Props) {
+export function ShortcutTiles({ onPracticePress, onConnectPress }: Props) {
   return (
-    <View style={styles.row}>
+    <View style={styles.grid}>
       <Tile
-        icon="headset"
-        iconColor={AppColors.purple}
+        icon="✏️"
+        title="Practice"
+        subtitle="Phrases & quizzes"
+        accentColor={AppColors.purpleLight}
         iconBg={AppColors.purpleMuted}
-        title="Listening"
-        subtitle="Stories & audio"
-        onPress={onListenPress}
+        gradientStart={AppColors.purpleAlpha20}
+        borderColor={AppColors.purpleAlpha24}
+        onPress={onPracticePress}
       />
       <Tile
-        icon="book"
-        iconColor={AppColors.primary}
-        iconBg={AppColors.primaryMuted}
-        title="Vocab Quiz"
-        subtitle="Word recall"
-        badge={vocabDueCount > 0 ? `${vocabDueCount} due` : undefined}
-        onPress={onVocabPress}
+        icon="🤝"
+        title="Connect"
+        subtitle="Find partners"
+        accentColor={AppColors.blueLight}
+        iconBg={AppColors.blueMuted}
+        gradientStart={AppColors.blueAlpha20}
+        borderColor={AppColors.blueAlpha24}
+        onPress={onConnectPress}
       />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  row: {
+  grid: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
   },
   tile: {
     flex: 1,
-    backgroundColor: AppColors.card,
     borderRadius: 16,
+    borderWidth: 1,
     padding: 16,
-    gap: 4,
+    minHeight: 116,
+    overflow: 'hidden',
+    justifyContent: 'space-between',
   },
-  iconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+  tilePressed: {
+    opacity: 0.75,
+  },
+  iconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 4,
   },
-  tileTitle: {
+  iconEmoji: {
+    fontSize: 20,
+    lineHeight: 24,
+  },
+  textGroup: {
+    gap: 3,
+  },
+  title: {
     fontSize: 15,
-    fontWeight: '600',
-    color: AppColors.textPrimary,
+    fontWeight: '700',
+    letterSpacing: -0.2,
   },
-  tileSub: {
-    fontSize: 12,
-    color: AppColors.textSecondary,
-  },
-  badge: {
-    marginTop: 6,
-    fontSize: 12,
-    fontWeight: '600',
-    color: AppColors.gold,
+  subtitle: {
+    fontSize: 11,
+    color: AppColors.textTertiary,
+    lineHeight: 15,
   },
 });
