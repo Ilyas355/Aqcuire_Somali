@@ -89,6 +89,7 @@ export default function StoryQuizScreen() {
       >
         {phase === 'quiz' && (
           <StoryQuizCard
+            key={currentIndex}
             question={questions[currentIndex]}
             index={currentIndex}
             total={questions.length}

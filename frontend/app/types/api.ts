@@ -224,6 +224,8 @@ export interface HomeScreenResponse {
   user_streak: number;
   user_level_percentage: number;
   next_level_name: string | null;
+  xp_into_level: number;
+  level_xp_required: number;
 }
 
 export interface SubtopicProgressUpdateRequest {

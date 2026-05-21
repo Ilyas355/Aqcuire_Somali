@@ -2,6 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
 import { ContinueListeningCard } from '@/components/home/ContinueListeningCard';
+import { DailyQuoteCard } from '@/components/home/DailyQuoteCard';
 import { GreetingHeader } from '@/components/home/GreetingHeader';
 import { LevelCard } from '@/components/home/LevelCard';
 import { ShortcutTiles } from '@/components/home/ShortcutTiles';
@@ -63,7 +64,10 @@ export default function HomeScreen() {
           levelDescription={data.level_description}
           levelPercentage={data.user_level_percentage}
           nextLevelName={data.next_level_name}
+          xpIntoLevel={data.xp_into_level}
+          levelXpRequired={data.level_xp_required}
         />
+        <DailyQuoteCard />
       </View>
     </ScreenWrapper>
   );

@@ -47,11 +47,15 @@ class SurvivalLineSerializer(serializers.ModelSerializer):
 
 class PhraseSerializer(serializers.ModelSerializer):
     grammar_notes = GrammarNoteSerializer(many=True, read_only=True)
-    quiz_questions = QuizQuestionSerializer(many=True, read_only=True)
+    quiz_questions = serializers.SerializerMethodField()
 
     class Meta:
         model = Phrase
         fields = ['id', 'somali', 'english', 'audio_url', 'order', 'grammar_notes', 'quiz_questions']
+
+    def get_quiz_questions(self, obj):
+        qs = QuizQuestion.multiple_choice().filter(phrase=obj)
+        return QuizQuestionSerializer(qs, many=True).data
 
 
 class SubtopicSummarySerializer(serializers.ModelSerializer):

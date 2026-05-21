@@ -12,7 +12,7 @@ export function CommunityHeader({ streak, onFindPartner }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.titleRow}>
-        <Text style={styles.title}>Connect</Text>
+        <Text style={styles.title}>Community</Text>
         {streak > 0 && (
           <View style={styles.streakBadge}>
             <Text style={styles.streakText}>🔥 {streak}</Text>

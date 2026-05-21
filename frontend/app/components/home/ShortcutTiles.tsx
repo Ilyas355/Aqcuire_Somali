@@ -59,7 +59,7 @@ export function ShortcutTiles({ onPracticePress, onConnectPress }: Props) {
       />
       <Tile
         icon="🤝"
-        title="Connect"
+        title="Community"
         subtitle="Find partners"
         accentColor={AppColors.blueLight}
         iconBg={AppColors.blueMuted}

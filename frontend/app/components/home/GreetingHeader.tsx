@@ -79,6 +79,7 @@ const styles = StyleSheet.create({
   eyebrow: {
     fontSize: 11,
     fontWeight: '700',
+    fontFamily: 'serif',
     color: AppColors.primary,
     letterSpacing: 1.2,
   },

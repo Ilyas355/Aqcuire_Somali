@@ -147,6 +147,10 @@ class QuizQuestion(models.Model):
     def __str__(self):
         return f"[{self.layer}] {self.question_text[:60]}"
 
+    @classmethod
+    def multiple_choice(cls):
+        return cls.objects.exclude(layer=cls.Layer.PRODUCTION)
+
     def check_answer(self, answer_given: str) -> bool:
         return answer_given.strip().lower() == self.correct_answer.strip().lower()
 

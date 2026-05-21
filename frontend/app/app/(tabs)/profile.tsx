@@ -67,6 +67,8 @@ export default function ProfileScreen() {
           levelDescription={profile.level?.current_level.description ?? null}
           levelPercentage={profile.level?.level_percentage ?? 0}
           nextLevelName={profile.level?.next_level_name ?? null}
+          xpIntoLevel={profile.level?.xp_into_level ?? 0}
+          levelXpRequired={profile.level?.current_level.xp_required ?? 0}
         />
 
         <StatsRow profile={profile} sections={sections} />

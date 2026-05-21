@@ -93,6 +93,10 @@ class QuizAttempt(models.Model):
         return f"{self.user.username} — {result} — {self.question}"
 
     @classmethod
+    def was_answered_correctly(cls, user, question) -> bool:
+        return cls.objects.filter(user=user, question=question, is_correct=True).exists()
+
+    @classmethod
     def weak_questions_for(cls, user) -> list[dict]:
         last_attempt = cls.objects.filter(
             user=user,
@@ -100,7 +104,7 @@ class QuizAttempt(models.Model):
         ).order_by('-attempted_at')
 
         questions_with_stats = (
-            QuizQuestion.objects
+            QuizQuestion.multiple_choice()
             .filter(attempts__user=user)
             .annotate(
                 total_attempts=Count('attempts', filter=Q(attempts__user=user)),

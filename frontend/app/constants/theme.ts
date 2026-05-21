@@ -64,6 +64,7 @@ export const AppColors = {
   gold:      '#F59E0B',
   goldMuted: '#422006',
   goldAlpha06: 'rgba(245,159,11,0.06)',
+  goldAlpha10: 'rgba(245,159,11,0.10)',
   goldAlpha22: 'rgba(245,159,11,0.22)',
   goldAlpha30: 'rgba(245,159,11,0.30)',
 

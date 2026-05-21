@@ -138,12 +138,37 @@ The core learning model is shifting to comprehensible input. Stories are the pri
 - [x] Frontend: `'weak'` mode added to Practice screen — phrase context card + quiz drill, back link, weak count badge
 - [x] Frontend: "Drill weak spots" banner on picker (hidden when 0 weak questions); secondary button on done screen
 
+#### 9e — Daily character quote card ✓
+- [x] Add `DailyQuoteCard` component to `components/home/` — speech bubble style card with character avatar, Somali quote, English translation, and character name
+- [x] Local array of 50 quotes in `constants/quotes.ts` — motivational/funny Somali phrases with English translations, cycling daily via `dayOfYear % quotes.length`
+- [x] Mount card at the bottom of the Home screen below `LevelCard`
+
 #### 9c — Home screen adjustments ✓
 - [x] Remove `ContinueLearningCard` — replaced with `ContinueListeningCard`
 - [x] `ContinueListeningCard` — purple LinearGradient card, navigates directly to story player (resume or start)
 - [x] Shortcut tiles changed to Practice (green) and Connect (purple)
 - [x] Backend: `HomeScreenView` now returns `current_story` (in-progress first, else first story) instead of `current_subtopic`
 - [x] Frontend: `CurrentStory` interface added to `types/api.ts`, `HomeScreenResponse` updated
+
+---
+
+### Phase 9f — Practice screen bug fixes
+
+#### 9f-1 — Remove phrase context card from weak drill ✓
+- [x] Remove the `weakContext` card rendered above the `PracticeQuizCard` in weak mode — it exposes the correct answer and shows a meaningless fraction
+
+#### 9f-2 — Prevent XP farming on repeated quiz submissions ✓
+- [x] Added `QuizAttempt.was_answered_correctly(user, question)` classmethod on model
+- [x] `QuizSubmitView` checks this before awarding XP — `xp_awarded: 0` if already answered correctly; attempt still recorded
+
+#### 9f-3 — Practice nav link resets session without affecting progress ✓
+- [x] `useFocusEffect` in `learn.tsx` resets all session state to picker on every screen focus; already-recorded `QuizAttempt` rows and `UserSubtopicProgress` stay untouched
+- [x] `tabPress` listener via `useNavigation<BottomTabNavigationProp>` handles the case where the user taps Practice while already on the Practice screen (useFocusEffect does not re-fire in this case)
+- [x] Both hooks call the same `resetSession` callback; trigger conditions are mutually exclusive so no double-reset
+
+#### 9f-4 — DailyQuoteCard padding fix ✓
+- [x] Removed `paddingTop: 2` from `quoteLines` (was adding unwanted space above Somali text)
+- [x] Moved `paddingBottom: 8` from `quoteLines` to `english` style — now sits explicitly below the translation, before the meaning divider
 
 ---
 

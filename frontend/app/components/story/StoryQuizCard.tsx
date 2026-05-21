@@ -58,9 +58,9 @@ export function StoryQuizCard({ question, index, total, onNext }: Props) {
         <Text style={styles.questionText}>{question.question_text}</Text>
 
         <View style={styles.options}>
-          {options.map((option) => (
+          {options.map((option, i) => (
             <Pressable
-              key={option}
+              key={i}
               style={getOptionStyle(option)}
               onPress={() => handleSelect(option)}
               disabled={!!selected}

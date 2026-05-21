@@ -58,7 +58,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="community"
         options={{
-          title: 'Connect',
+          title: 'Community',
           tabBarIcon: ({ focused }) => (
             <Text style={[styles.tabIcon, !focused && styles.tabIconInactive]}>💬</Text>
           ),

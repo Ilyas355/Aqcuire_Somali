@@ -9,15 +9,17 @@ interface Props {
   levelDescription: string | null;
   levelPercentage: number;
   nextLevelName: string | null;
+  xpIntoLevel: number;
+  levelXpRequired: number;
 }
 
-export function LevelCard({ levelName, levelDescription, levelPercentage, nextLevelName }: Props) {
+export function LevelCard({ levelName, levelDescription, levelPercentage, nextLevelName, xpIntoLevel, levelXpRequired }: Props) {
   return (
     <Card>
       <View style={styles.header}>
-        <Text style={styles.sectionLabel}>YOUR LEVEL</Text>
+        <Text style={styles.sectionLabel}>LEVEL</Text>
         <Text style={styles.nextLabel}>
-          {nextLevelName ? `TO ${nextLevelName.toUpperCase()}` : 'MAX LEVEL'}
+          {nextLevelName ? `NEXT: ${nextLevelName}` : 'MAX LEVEL'}
         </Text>
       </View>
 
@@ -41,7 +43,9 @@ export function LevelCard({ levelName, levelDescription, levelPercentage, nextLe
         <View style={styles.barWrap}>
           <ProgressBar value={levelPercentage} height={6} />
         </View>
-        <Text style={styles.percentage}>{levelPercentage}%</Text>
+        <Text style={styles.percentage}>
+          {levelXpRequired > 0 ? `${xpIntoLevel} / ${levelXpRequired} XP` : `${levelPercentage}%`}
+        </Text>
       </View>
     </Card>
   );
@@ -107,10 +111,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   percentage: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     color: AppColors.primary,
-    width: 36,
     textAlign: 'right',
   },
 });

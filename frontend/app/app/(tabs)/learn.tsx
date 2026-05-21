@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useFocusEffect, useNavigation } from 'expo-router';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 
 import { FlashCard } from '@/components/practice/FlashCard';
 import { PracticeHeader } from '@/components/practice/PracticeHeader';
@@ -12,9 +14,10 @@ import { useCurriculum, useSubtopicDetail } from '@/hooks/useCurriculum';
 import { useHomeScreen } from '@/hooks/useHomeScreen';
 import { useSubmitPracticeQuiz } from '@/hooks/usePractice';
 import { useWeakQuestions } from '@/hooks/useProgress';
-import type { QuizSubmitResponse } from '@/types/api';
+import type { QuizSubmitResponse, WeakQuestion } from '@/types/api';
 
 type Mode = 'picker' | 'flashcard' | 'quiz' | 'weak' | 'done';
+type DoneSource = 'subtopic' | 'weak';
 
 export default function PracticeScreen() {
   const { data: sections, isLoading: sectionsLoading, refetch, isRefetching } = useCurriculum();
@@ -35,6 +38,29 @@ export default function PracticeScreen() {
 
   const [weakIndex, setWeakIndex] = useState(0);
   const [weakResult, setWeakResult] = useState<QuizSubmitResponse | null>(null);
+  const [weakSnapshot, setWeakSnapshot] = useState<WeakQuestion[]>([]);
+  const [doneSource, setDoneSource] = useState<DoneSource>('subtopic');
+
+  const resetSession = useCallback(() => {
+    setMode('picker');
+    setSelectedId(0);
+    setCardIndex(0);
+    setQuizIndex(0);
+    setQuizResult(null);
+    setTotalXp(0);
+    setCorrectCount(0);
+    setWeakIndex(0);
+    setWeakResult(null);
+    setWeakSnapshot([]);
+    setDoneSource('subtopic');
+  }, []);
+
+  useFocusEffect(useCallback(() => { resetSession(); }, [resetSession]));
+
+  const navigation = useNavigation<BottomTabNavigationProp<Record<string, undefined>>>();
+  useEffect(() => {
+    return navigation.addListener('tabPress', resetSession);
+  }, [navigation, resetSession]);
 
   const phrases = subtopic?.phrases ?? [];
   const phrasesWithQuiz = phrases.filter((p) => p.quiz_questions.length > 0);
@@ -47,6 +73,7 @@ export default function PracticeScreen() {
     setQuizResult(null);
     setTotalXp(0);
     setCorrectCount(0);
+    setDoneSource('subtopic');
     setMode('flashcard');
   };
 
@@ -90,10 +117,12 @@ export default function PracticeScreen() {
   };
 
   const handleStartWeak = () => {
+    setWeakSnapshot(weakQuestions);
     setWeakIndex(0);
     setWeakResult(null);
     setCorrectCount(0);
     setTotalXp(0);
+    setDoneSource('weak');
     setMode('weak');
   };
 
@@ -113,7 +142,7 @@ export default function PracticeScreen() {
   };
 
   const handleNextWeak = () => {
-    if (weakIndex < weakQuestions.length - 1) {
+    if (weakIndex < weakSnapshot.length - 1) {
       setWeakIndex((i) => i + 1);
       setWeakResult(null);
     } else {
@@ -187,6 +216,7 @@ export default function PracticeScreen() {
 
         {mode === 'quiz' && phrasesWithQuiz.length > 0 && (
           <PracticeQuizCard
+            key={quizIndex}
             question={phrasesWithQuiz[quizIndex].quiz_questions[0]}
             phraseIndex={quizIndex}
             phraseTotal={phrasesWithQuiz.length}
@@ -196,24 +226,12 @@ export default function PracticeScreen() {
           />
         )}
 
-        {mode === 'weak' && weakQuestions.length > 0 && (
-          <View style={styles.weakContext}>
-            <Text style={styles.weakContextLabel}>PHRASE</Text>
-            <Text style={styles.weakContextSomali}>{weakQuestions[weakIndex].phrase_somali}</Text>
-            <Text style={styles.weakContextEnglish}>{weakQuestions[weakIndex].phrase_english}</Text>
-            <View style={styles.weakStat}>
-              <Text style={styles.weakStatText}>
-                {weakQuestions[weakIndex].correct_attempts}/{weakQuestions[weakIndex].total_attempts} correct
-              </Text>
-            </View>
-          </View>
-        )}
-
-        {mode === 'weak' && weakQuestions.length > 0 && (
+        {mode === 'weak' && weakSnapshot.length > 0 && (
           <PracticeQuizCard
-            question={weakQuestions[weakIndex]}
+            key={weakIndex}
+            question={weakSnapshot[weakIndex]}
             phraseIndex={weakIndex}
-            phraseTotal={weakQuestions.length}
+            phraseTotal={weakSnapshot.length}
             onAnswer={handleWeakAnswer}
             result={weakResult}
             onNext={handleNextWeak}
@@ -222,13 +240,19 @@ export default function PracticeScreen() {
 
         {mode === 'done' && (
           <View style={styles.doneCard}>
-            <Text style={styles.doneEmoji}>🎉</Text>
+            <Text style={styles.doneEmoji}>{doneSource === 'weak' ? '💪' : '🎉'}</Text>
             <Text style={styles.doneTitle}>Session complete!</Text>
-            <Text style={styles.doneSub}>{selectedTitle}</Text>
+            <Text style={styles.doneSub}>
+              {doneSource === 'weak' ? 'Weak spots drilled' : selectedTitle}
+            </Text>
             <View style={styles.doneStats}>
               <View style={styles.doneStat}>
-                <Text style={styles.doneStatNum}>{phrasesWithQuiz.length}</Text>
-                <Text style={styles.doneStatLabel}>Phrases</Text>
+                <Text style={styles.doneStatNum}>
+                  {doneSource === 'weak' ? weakSnapshot.length : phrasesWithQuiz.length}
+                </Text>
+                <Text style={styles.doneStatLabel}>
+                  {doneSource === 'weak' ? 'Questions' : 'Phrases'}
+                </Text>
               </View>
               <View style={styles.doneStat}>
                 <Text style={styles.doneStatNum}>{correctCount}</Text>
@@ -373,36 +397,5 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: AppColors.error,
     fontWeight: '700',
-  },
-  weakContext: {
-    backgroundColor: AppColors.card,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: AppColors.border,
-    padding: 16,
-    gap: 4,
-  },
-  weakContextLabel: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: AppColors.textTertiary,
-    letterSpacing: 1,
-  },
-  weakContextSomali: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: AppColors.textPrimary,
-  },
-  weakContextEnglish: {
-    fontSize: 13,
-    color: AppColors.textSecondary,
-  },
-  weakStat: {
-    marginTop: 4,
-  },
-  weakStatText: {
-    fontSize: 11,
-    color: AppColors.error,
-    fontWeight: '600',
   },
 });

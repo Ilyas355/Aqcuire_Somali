@@ -53,6 +53,8 @@ class HomeScreenView(APIView):
             level_description = None
             user_level_percentage = 0
             next_level_name = None
+            level_xp_required = 0
+            user_level = None
 
         in_progress = (
             UserStoryProgress.objects
@@ -122,6 +124,8 @@ class HomeScreenView(APIView):
             'user_streak': profile.current_streak,
             'user_level_percentage': user_level_percentage,
             'next_level_name': next_level_name,
+            'xp_into_level': user_level.xp_into_level if user_level else 0,
+            'level_xp_required': level_xp_required,
         })
 
 
@@ -195,7 +199,8 @@ class QuizSubmitView(APIView):
 
         question = get_object_or_404(QuizQuestion, pk=data['question_id'])
         is_correct = question.check_answer(data['answer_given'])
-        xp_awarded = question.xp_for_correct() if is_correct else 0
+        already_correct = QuizAttempt.was_answered_correctly(request.user, question)
+        xp_awarded = question.xp_for_correct() if is_correct and not already_correct else 0
 
         QuizAttempt.objects.create(
             user=request.user,
