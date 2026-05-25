@@ -1,8 +1,8 @@
 from datetime import timedelta
 
 from django.contrib.auth.models import User
-from django.db import models
-from django.db.models import Count, OuterRef, Q, Subquery
+from django.db import models, transaction
+from django.db.models import Count, F, OuterRef, Q, Subquery
 from django.utils import timezone
 
 from apps.curriculum.models import Phrase, QuizQuestion, Section, Subtopic
@@ -40,6 +40,34 @@ class UserSectionProgress(models.Model):
             .first()
         )
         return progress.section.title if progress else None
+
+    @classmethod
+    def record_subtopic_completed(cls, user, subtopic) -> None:
+        with transaction.atomic():
+            section_progress, _ = cls.objects.get_or_create(
+                user=user,
+                section=subtopic.section,
+                defaults={'is_unlocked': True},
+            )
+            cls.objects.filter(pk=section_progress.pk).update(
+                subtopics_completed=F('subtopics_completed') + 1
+            )
+            section_progress.refresh_from_db()
+            total = Subtopic.objects.filter(section=subtopic.section).count()
+            if section_progress.subtopics_completed >= total:
+                cls.objects.filter(pk=section_progress.pk).update(is_completed=True)
+                next_section = (
+                    Section.objects
+                    .filter(order__gt=subtopic.section.order)
+                    .order_by('order')
+                    .first()
+                )
+                if next_section:
+                    cls.objects.get_or_create(
+                        user=user,
+                        section=next_section,
+                        defaults={'is_unlocked': True},
+                    )
 
 
 class UserSubtopicProgress(models.Model):

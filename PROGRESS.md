@@ -170,19 +170,14 @@ The core learning model is shifting to comprehensible input. Stories are the pri
 - [x] Removed `paddingTop: 2` from `quoteLines` (was adding unwanted space above Somali text)
 - [x] Moved `paddingBottom: 8` from `quoteLines` to `english` style — now sits explicitly below the translation, before the meaning divider
 
----
-
-## Next
-
-### Phase 5 — Lesson Flow ✓ (partial)
+#### Phase 5 — Lesson Flow ✓
 
 - [x] Lesson screen — template → practice → quiz → review steps (`lesson-flow.png`)
 - [x] Wire Continue button on Home and Learn screens to lesson route
-- [ ] Wire LevelUpModal trigger on section/level completion
 
-### Phase 5b — Story Player
+#### Phase 5b — Story Player ✓
 
-#### Backend ✓
+##### Backend ✓
 - [x] Add `timestamp_seconds: PositiveIntegerField(default=0)` to `StoryLine` model
 - [x] Add `audio_url: URLField(blank=True)` to `Story` model
 - [x] Run and apply migration
@@ -192,7 +187,7 @@ The core learning model is shifting to comprehensible input. Stories are the pri
 - [x] Add media file serving to `urls.py` (dev only)
 - [x] Seed Conversation 1 story + lines with timestamps via management command
 
-#### Frontend ✓
+##### Frontend ✓
 - [x] Install `expo-av` for audio playback
 - [x] Add `timestamp_seconds` to `StoryLine` interface in `types/api.ts`
 - [x] Add `audio_url` to `StoryDetail` and `StorySummary` interfaces in `types/api.ts`
@@ -204,6 +199,12 @@ The core learning model is shifting to comprehensible input. Stories are the pri
 - [x] Build `app/story/[id].tsx` — full player screen: expo-av audio, active line tracking, tip modal, complete on finish
 - [x] Register `story/[id]` in root `_layout.tsx`
 - [x] Wire story row tap on Listen screen to navigate to `app/story/[id].tsx`
+
+#### Phase 5c — LevelUpModal trigger ✓
+- [x] Backend: added `level_subtitle` to `HomeScreenView` response (reads `current_level.subtitle`)
+- [x] Frontend types: added `level_subtitle: string | null` to `HomeScreenResponse`
+- [x] Frontend: capture `homeData.greeting_level` at session start; `useEffect` detects change when mode hits `done` — fires `setShowLevelUp(true)`
+- [x] Frontend: `LevelUpModal` mounted outside `ScreenWrapper` in a Fragment; dismiss/keep-going both call `resetSession`
 
 ### Phase 6 — Community System
 
@@ -336,36 +337,43 @@ Design audit against `community-screen.png` revealed four missing pieces.
 - [x] `PartnerCard` updated — accepts `onPress?: (id: number) => void`; wraps in `Pressable` when provided; shows "Respond →" chip (orange) for `received` status instead of inline Accept/Reject
 - [x] `community.tsx` — suggested cards navigate to `partner/[id]` on tap; inline `onReject` removed; `rejectingId` state and `useRejectPartnerRequest` import removed
 
-## Technical Debt — Business Logic in Views
+## Technical Debt — Business Logic in Views ✓ fully resolved
 
-Business logic still living in views instead of models/service layer (guideline violation).
-Refactor these before scaling. Ordered by risk/impact.
+### `progress/views.py` ✓
+- [x] `UserSectionProgress.record_subtopic_completed(user, subtopic)` — section completion, subtopic count check, next-section unlock; `transaction.atomic()` inside model method
+- [x] `UserLevel.level_percentage` property — percentage calc + max-level cap (used by `HomeScreenView` and `UserLevelSerializer`)
+- [x] `UserLevel.next_level_name` property — used by both `HomeScreenView` and `UserLevelSerializer`, eliminating duplication
+- [x] `UserStoryProgress.get_current_for_user(user)` classmethod — in-progress query + unstarted fallback
+- [x] `phrases_completed` clamping inlined to one line in view (not complex enough to warrant a separate method)
 
-### `progress/views.py`
+### `users/views.py` ✓
+- [x] `UserProfile.issue_tokens(user)` static method — `RefreshToken.for_user` + token string construction
+- [x] `UserProfile.change_password(current, new)` instance method — `check_password` + `validate_password` + `set_password`; raises `ValueError` on failure
 
-- [ ] **Section completion + next section unlock** (`SubtopicProgressUpdateView`) — the subtopic count check, `is_completed=True` write, and next-section `get_or_create` should move to a `UserSectionProgress.record_subtopic_completed(subtopic)` model method with the `transaction.atomic()` block inside it
-- [ ] **Level percentage calculation** (`HomeScreenView`) — `round(xp_into_level / xp_required * 100)` and the max-level cap logic should be a `UserLevel.level_percentage` property
-- [ ] **"Current subtopic" resolution** (`HomeScreenView`) — the in-progress query + unstarted fallback should be a `UserSubtopicProgress.get_current_for_user(user)` classmethod
-- [ ] **phrases_completed clamping** (`SubtopicProgressUpdateView`) — `min(data['phrases_completed'], phrase_count)` should be a `UserSubtopicProgress.clamp_phrases(count, subtopic)` or handled in the model's `save()`
-
-### `users/views.py`
-
-- [ ] **Token issuance on register** (`RegisterView`) — `RefreshToken.for_user(user)` + token string construction should move to the `RegisterSerializer.create()` return value or a `UserProfile.issue_tokens()` method
-- [ ] **Password change logic** (`PasswordChangeView`) — `check_password()` + `validate_password()` + `set_password()` is a multi-step state change that belongs on a `User` service method, not inline in the view
-
-### `community/views.py` ✓ fully refactored
-
+### `community/views.py` ✓
 - [x] `Partner.suggested_candidates_for(user)` — `SuggestedPartnersView`
 - [x] `PartnerRequest.request_status_map_for(user)` — `SuggestedPartnersView`
 - [x] `PartnerRequest.send_or_accept(sender, receiver)` — `PartnerRequestView`
 - [x] `UserProfile.leaderboard_all_time/this_week/partners()` — `LeaderboardView`
 - [x] `WeeklyChallenge.get_current()` — `LeaderboardView`
 
-### `curriculum/views.py` ✓ fully refactored
-
+### `curriculum/views.py` ✓
 - [x] `QuizQuestion.check_answer(answer)` — `QuizSubmitView`
 - [x] `QuizQuestion.xp_for_correct()` / `QuizQuestion.XP_BY_LAYER` — `QuizSubmitView`
 
-### `content/views.py`
+### `content/views.py` ✓
+- [x] `UserStoryProgress.complete(story)` — idempotency check, last line position, XP award to `UserProfile`, `UserLevel.apply_xp` — all in model method; `StoryCompleteView` is now 3 lines
 
-- [ ] **Story completion + XP award** (`StoryCompleteView`) — the idempotency check (`not progress.is_completed`), last line position derivation (`story.lines.count()`), and XP award should move to a `UserStoryProgress.complete(story)` model method
+---
+
+## Next
+
+### v1 Launch Prep
+
+All features are built and all technical debt is resolved. Remaining work before launch:
+
+- [ ] Seed production content — Level rows (Newbie → Elite), at least 1 full Section with Subtopics, Phrases, and QuizQuestions; beginner Stories with audio
+- [ ] End-to-end test on physical device — full user journey: register → lesson → practice → weak drill → story → community
+- [ ] Push notifications setup (daily reminder) — `daily_reminder_time` field exists on `UserProfile`, needs Expo push token registration and a scheduled job
+- [ ] App Store / Play Store assets — icon, splash, screenshots
+- [ ] Production environment — set `DEBUG=False`, configure allowed hosts, static files, database URL via `.env`

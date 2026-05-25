@@ -113,13 +113,49 @@ class UserStoryProgress(models.Model):
     def __str__(self):
         return f"{self.user.username} — {self.story.title}"
 
+    @classmethod
+    def get_current_for_user(cls, user) -> dict | None:
+        in_progress = (
+            cls.objects
+            .filter(user=user, is_completed=False, last_line_position__gt=0)
+            .select_related('story__category')
+            .order_by('-story__order')
+            .first()
+        )
+        if in_progress:
+            s = in_progress.story
+            return {
+                'id': s.id, 'title': s.title, 'difficulty': s.difficulty,
+                'duration_seconds': s.duration_seconds, 'xp_reward': s.xp_reward,
+                'last_line_position': in_progress.last_line_position,
+                'is_completed': False, 'category': s.category.name,
+            }
+        first_story = Story.objects.select_related('category').order_by('order').first()
+        if first_story:
+            return {
+                'id': first_story.id, 'title': first_story.title,
+                'difficulty': first_story.difficulty,
+                'duration_seconds': first_story.duration_seconds,
+                'xp_reward': first_story.xp_reward,
+                'last_line_position': 0, 'is_completed': False,
+                'category': first_story.category.name,
+            }
+        return None
+
     def complete(self, story) -> int:
         if self.is_completed:
             return 0
-        from apps.users.models import UserProfile
+        from django.db import transaction
+        from apps.users.models import UserLevel, UserProfile
         self.is_completed = True
         self.last_line_position = story.lines.count()
         self.save(update_fields=['is_completed', 'last_line_position'])
         xp_awarded = story.xp_reward
-        UserProfile.objects.filter(user=self.user).update(total_xp=F('total_xp') + xp_awarded)
+        with transaction.atomic():
+            UserProfile.objects.filter(user=self.user).update(total_xp=F('total_xp') + xp_awarded)
+            try:
+                user_level = UserLevel.objects.select_related('current_level').get(user=self.user)
+                user_level.apply_xp(xp_awarded)
+            except UserLevel.DoesNotExist:
+                pass
         return xp_awarded

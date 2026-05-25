@@ -226,6 +226,7 @@ export interface HomeScreenResponse {
   next_level_name: string | null;
   xp_into_level: number;
   level_xp_required: number;
+  level_subtitle: string | null;
 }
 
 export interface SubtopicProgressUpdateRequest {

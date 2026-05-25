@@ -58,17 +58,10 @@ class UserLevelSerializer(serializers.ModelSerializer):
         fields = ['current_level', 'xp_into_level', 'level_percentage', 'next_level_name']
 
     def get_level_percentage(self, obj):
-        xp_required = obj.current_level.xp_required
-        if xp_required <= 0:
-            return 0
-        next_level = Level.objects.filter(order__gt=obj.current_level.order).order_by('order').first()
-        if next_level is None:
-            return 100
-        return min(100, round(obj.xp_into_level / xp_required * 100))
+        return obj.level_percentage
 
     def get_next_level_name(self, obj):
-        next_level = Level.objects.filter(order__gt=obj.current_level.order).order_by('order').first()
-        return next_level.name if next_level else None
+        return obj.next_level_name
 
 
 class AchievementSerializer(serializers.ModelSerializer):

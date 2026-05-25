@@ -7,6 +7,7 @@ import { FlashCard } from '@/components/practice/FlashCard';
 import { PracticeHeader } from '@/components/practice/PracticeHeader';
 import { PracticeQuizCard } from '@/components/practice/PracticeQuizCard';
 import { SubtopicPicker } from '@/components/practice/SubtopicPicker';
+import { LevelUpModal } from '@/components/profile/LevelUpModal';
 import { ScreenWrapper } from '@/components/ui/ScreenWrapper';
 import { Skeleton, SkeletonCard } from '@/components/ui/Skeleton';
 import { AppColors } from '@/constants/theme';
@@ -14,7 +15,7 @@ import { useCurriculum, useSubtopicDetail } from '@/hooks/useCurriculum';
 import { useHomeScreen } from '@/hooks/useHomeScreen';
 import { useSubmitPracticeQuiz } from '@/hooks/usePractice';
 import { useWeakQuestions } from '@/hooks/useProgress';
-import type { QuizSubmitResponse, WeakQuestion } from '@/types/api';
+import type { QuizSubmitResponse, UserLevel, WeakQuestion } from '@/types/api';
 
 type Mode = 'picker' | 'flashcard' | 'quiz' | 'weak' | 'done';
 type DoneSource = 'subtopic' | 'weak';
@@ -40,6 +41,16 @@ export default function PracticeScreen() {
   const [weakResult, setWeakResult] = useState<QuizSubmitResponse | null>(null);
   const [weakSnapshot, setWeakSnapshot] = useState<WeakQuestion[]>([]);
   const [doneSource, setDoneSource] = useState<DoneSource>('subtopic');
+  const [sessionStartLevel, setSessionStartLevel] = useState<string | null>(null);
+  const [showLevelUp, setShowLevelUp] = useState(false);
+
+  // Detect level-up: homeScreen refetches after each quiz answer via useSubmitPracticeQuiz.
+  // By the time done mode renders, greeting_level reflects the new level if one occurred.
+  useEffect(() => {
+    if (mode === 'done' && sessionStartLevel && homeData?.greeting_level && homeData.greeting_level !== sessionStartLevel) {
+      setShowLevelUp(true);
+    }
+  }, [homeData?.greeting_level, mode, sessionStartLevel]);
 
   const resetSession = useCallback(() => {
     setMode('picker');
@@ -53,6 +64,8 @@ export default function PracticeScreen() {
     setWeakResult(null);
     setWeakSnapshot([]);
     setDoneSource('subtopic');
+    setSessionStartLevel(null);
+    setShowLevelUp(false);
   }, []);
 
   useFocusEffect(useCallback(() => { resetSession(); }, [resetSession]));
@@ -73,6 +86,7 @@ export default function PracticeScreen() {
     setQuizResult(null);
     setTotalXp(0);
     setCorrectCount(0);
+    setSessionStartLevel(homeData?.greeting_level ?? null);
     setDoneSource('subtopic');
     setMode('flashcard');
   };
@@ -122,6 +136,7 @@ export default function PracticeScreen() {
     setWeakResult(null);
     setCorrectCount(0);
     setTotalXp(0);
+    setSessionStartLevel(homeData?.greeting_level ?? null);
     setDoneSource('weak');
     setMode('weak');
   };
@@ -163,6 +178,7 @@ export default function PracticeScreen() {
   }
 
   return (
+    <>
     <ScreenWrapper
       scroll
       onRefresh={mode === 'picker' ? refetch : undefined}
@@ -275,6 +291,30 @@ export default function PracticeScreen() {
         )}
       </View>
     </ScreenWrapper>
+
+    {showLevelUp && homeData && (
+      <LevelUpModal
+        visible={showLevelUp}
+        level={{
+          current_level: {
+            name: homeData.greeting_level ?? '',
+            subtitle: homeData.level_subtitle ?? '',
+            description: homeData.level_description ?? '',
+            xp_required: homeData.level_xp_required,
+            order: 0,
+          },
+          xp_into_level: homeData.xp_into_level,
+          level_percentage: homeData.user_level_percentage,
+          next_level_name: homeData.next_level_name,
+        } satisfies UserLevel}
+        totalXP={homeData.user_xp}
+        streak={homeData.user_streak}
+        overallPct={homeData.overall_progress.percentage}
+        onDismiss={resetSession}
+        onKeepGoing={resetSession}
+      />
+    )}
+    </>
   );
 }
 

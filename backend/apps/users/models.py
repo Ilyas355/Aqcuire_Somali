@@ -1,7 +1,9 @@
 import random
 import string
 
+from django.contrib.auth import password_validation
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import models
 from django.utils import timezone
 
@@ -24,6 +26,22 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return f"@{self.handle} ({self.user.username})"
+
+    @staticmethod
+    def issue_tokens(user) -> dict:
+        from rest_framework_simplejwt.tokens import RefreshToken
+        refresh = RefreshToken.for_user(user)
+        return {'access': str(refresh.access_token), 'refresh': str(refresh)}
+
+    def change_password(self, current_password: str, new_password: str) -> None:
+        try:
+            password_validation.validate_password(new_password, self.user)
+        except DjangoValidationError as e:
+            raise ValueError(e.messages)
+        if not self.user.check_password(current_password):
+            raise ValueError('Current password is incorrect.')
+        self.user.set_password(new_password)
+        self.user.save()
 
     @classmethod
     def leaderboard_all_time(cls):
@@ -132,6 +150,24 @@ class UserLevel(models.Model):
 
     def __str__(self):
         return f"{self.user.username} — {self.current_level.name}"
+
+    @property
+    def next_level(self):
+        return Level.objects.filter(order__gt=self.current_level.order).order_by('order').first()
+
+    @property
+    def next_level_name(self) -> str | None:
+        n = self.next_level
+        return n.name if n else None
+
+    @property
+    def level_percentage(self) -> int:
+        xp_required = self.current_level.xp_required
+        if xp_required <= 0:
+            return 0
+        if self.next_level is None:
+            return 100
+        return min(100, round(self.xp_into_level / xp_required * 100))
 
     def apply_xp(self, amount: int) -> None:
         self.xp_into_level += amount

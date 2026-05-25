@@ -1,11 +1,8 @@
-from django.db import transaction
 from django.shortcuts import get_object_or_404
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
-from apps.users.models import UserLevel
 
 from .models import Story, StoryQuizQuestion, UserStoryProgress
 from .serializers import StoryDetailSerializer, StoryListSerializer, StoryQuizQuestionSerializer
@@ -84,15 +81,8 @@ class StoryCompleteView(APIView):
 
     def post(self, request, pk):
         story = get_object_or_404(Story.objects.prefetch_related('lines'), pk=pk)
-        with transaction.atomic():
-            progress, _ = UserStoryProgress.objects.get_or_create(user=request.user, story=story)
-            xp_awarded = progress.complete(story)
-            if xp_awarded > 0:
-                try:
-                    user_level = UserLevel.objects.select_related('current_level').get(user=request.user)
-                    user_level.apply_xp(xp_awarded)
-                except UserLevel.DoesNotExist:
-                    pass
+        progress, _ = UserStoryProgress.objects.get_or_create(user=request.user, story=story)
+        xp_awarded = progress.complete(story)
         return Response({'is_completed': True, 'xp_awarded': xp_awarded})
 
 

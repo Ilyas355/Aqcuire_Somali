@@ -7,7 +7,6 @@ from rest_framework import generics, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import PasswordResetToken, UserProfile
 from .serializers import ProfileSerializer, RegisterSerializer
@@ -27,15 +26,10 @@ class RegisterView(generics.CreateAPIView):
                 {'handle': ['This handle is already taken.']},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        refresh = RefreshToken.for_user(user)
+        tokens = UserProfile.issue_tokens(user)
         return Response({
-            'access': str(refresh.access_token),
-            'refresh': str(refresh),
-            'user': {
-                'id': user.id,
-                'username': user.username,
-                'email': user.email,
-            },
+            **tokens,
+            'user': {'id': user.id, 'username': user.username, 'email': user.email},
         }, status=status.HTTP_201_CREATED)
 
 
@@ -64,18 +58,10 @@ class PasswordChangeView(APIView):
             )
 
         try:
-            password_validation.validate_password(new_password, request.user)
-        except DjangoValidationError as e:
-            return Response({'detail': e.messages}, status=status.HTTP_400_BAD_REQUEST)
+            request.user.profile.change_password(current_password, new_password)
+        except ValueError as e:
+            return Response({'detail': e.args[0]}, status=status.HTTP_400_BAD_REQUEST)
 
-        if not request.user.check_password(current_password):
-            return Response(
-                {'detail': 'Current password is incorrect.'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        request.user.set_password(new_password)
-        request.user.save()
         return Response({'detail': 'Password updated successfully.'})
 
 
