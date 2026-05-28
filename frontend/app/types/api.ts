@@ -207,6 +207,7 @@ export interface CurrentStory {
   last_line_position: number;
   is_completed: boolean;
   category: string;
+  quiz_count: number;
 }
 
 export interface HomeScreenResponse {
@@ -336,6 +337,7 @@ export interface StorySummary {
   is_completed: boolean;
   last_line_position: number;
   is_locked: boolean;
+  quiz_count: number;
 }
 
 export interface StoryDetail extends Omit<StorySummary, 'is_completed'> {
@@ -359,11 +361,11 @@ export interface StoryCompleteResponse {
 
 export interface PartnerProfile {
   bio: string;
-  rating: number;
   total_partners: number;
   is_heritage_speaker: boolean;
   availability: string;
-  preferred_format: string;
+  city: string;
+  preferred_format?: string; // only present when viewing as an actual partner
 }
 
 export interface SuggestedPartner {
@@ -405,6 +407,7 @@ export interface OwnPartnerProfile {
   is_heritage_speaker: boolean;
   availability: string;
   preferred_format: string;
+  city: string;
 }
 
 export interface UpdatePartnerProfileRequest {
@@ -412,6 +415,7 @@ export interface UpdatePartnerProfileRequest {
   is_heritage_speaker?: boolean;
   availability?: string;
   preferred_format?: string;
+  city?: string;
 }
 
 export interface PartnerRequestResponse {
@@ -423,6 +427,7 @@ export interface LeaderboardEntry {
   handle: string;
   avatar: string;
   xp: number;
+  city: string;
 }
 
 export interface WeeklyChallenge {

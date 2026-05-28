@@ -1,6 +1,5 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, Pressable } from 'react-native';
 
-import { Button } from '@/components/ui/Button';
 import { AppColors } from '@/constants/theme';
 
 interface Props {
@@ -21,16 +20,34 @@ export function CommunityHeader({ streak, onFindPartner }: Props) {
       </View>
 
       <View style={styles.promoCard}>
-        <Text style={styles.promoTitle}>Ready to level up? 🎮</Text>
-        <Text style={styles.promoBody}>
-          Practice with a real speaker. Earn +20 XP per session — partners make you 3× more likely to finish.
-        </Text>
-        <Button
-          label="Find a Partner"
-          variant="secondary"
-          size="sm"
+        <View style={styles.promoTop}>
+          <Text style={styles.promoTitle}>Practice with a real speaker</Text>
+          <Text style={styles.promoBody}>
+            Connect with another learner and speak Somali together. Partners earn +20 XP per session and reach fluency 3× faster.
+          </Text>
+        </View>
+        <View style={styles.statsRow}>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>+20</Text>
+            <Text style={styles.statLabel}>XP / session</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>3×</Text>
+            <Text style={styles.statLabel}>faster fluency</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>Live</Text>
+            <Text style={styles.statLabel}>conversation</Text>
+          </View>
+        </View>
+        <Pressable
+          style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]}
           onPress={onFindPartner}
-        />
+        >
+          <Text style={styles.ctaText}>Find a Partner →</Text>
+        </Pressable>
       </View>
     </View>
   );
@@ -38,7 +55,7 @@ export function CommunityHeader({ streak, onFindPartner }: Props) {
 
 const styles = StyleSheet.create({
   container: {
-    gap: 14,
+    gap: 16,
   },
   titleRow: {
     flexDirection: 'row',
@@ -56,28 +73,78 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingVertical: 6,
     paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: AppColors.goldAlpha22,
   },
   streakText: {
     color: AppColors.gold,
     fontWeight: '700',
-    fontSize: 14,
+    fontSize: 13,
   },
   promoCard: {
-    backgroundColor: AppColors.primaryMuted,
+    backgroundColor: AppColors.surface1,
     borderRadius: 16,
-    padding: 16,
-    gap: 10,
     borderWidth: 1,
     borderColor: AppColors.border,
+    padding: 16,
+    gap: 14,
+  },
+  promoTop: {
+    gap: 6,
   },
   promoTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
     color: AppColors.textPrimary,
+    letterSpacing: -0.2,
   },
   promoBody: {
     fontSize: 13,
     color: AppColors.textSecondary,
     lineHeight: 19,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: AppColors.surface2,
+    borderRadius: 10,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: AppColors.border,
+  },
+  statItem: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 2,
+  },
+  statValue: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: AppColors.primary,
+  },
+  statLabel: {
+    fontSize: 10,
+    color: AppColors.textTertiary,
+    fontWeight: '500',
+  },
+  statDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: AppColors.border,
+  },
+  cta: {
+    backgroundColor: AppColors.primary,
+    borderRadius: 12,
+    paddingVertical: 13,
+    alignItems: 'center',
+  },
+  ctaPressed: {
+    opacity: 0.85,
+  },
+  ctaText: {
+    color: AppColors.onPrimary,
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 0.2,
   },
 });

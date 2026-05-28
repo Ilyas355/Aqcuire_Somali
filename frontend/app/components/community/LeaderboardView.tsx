@@ -13,37 +13,69 @@ const SUB_TABS: { id: LeaderboardTab; label: string }[] = [
 ];
 
 function formatXP(xp: number): string {
+  if (xp >= 1000) return (xp / 1000).toFixed(xp % 1000 === 0 ? 0 : 1) + 'k XP';
   return xp.toLocaleString() + ' XP';
 }
 
-function rankColor(rank: number): string {
+function medalEmoji(rank: number): string | null {
+  if (rank === 1) return '🥇';
+  if (rank === 2) return '🥈';
+  if (rank === 3) return '🥉';
+  return null;
+}
+
+function rankAccent(rank: number): string {
   if (rank === 1) return AppColors.gold;
-  if (rank <= 3) return AppColors.textPrimary;
-  return AppColors.textSecondary;
+  if (rank === 2) return AppColors.white45;
+  if (rank === 3) return AppColors.orange;
+  return AppColors.textTertiary;
+}
+
+function avatarBorderColor(rank: number): string {
+  if (rank === 1) return AppColors.gold;
+  if (rank === 2) return AppColors.white22;
+  if (rank === 3) return AppColors.orange;
+  return AppColors.border;
 }
 
 function LeaderboardEntry({
   rank,
-  username,
   handle,
   xp,
+  city,
 }: {
   rank: number;
-  username: string;
   handle: string;
   xp: number;
+  city: string;
 }) {
+  const isPodium = rank <= 3;
+  const medal = medalEmoji(rank);
+  const accent = rankAccent(rank);
+  const xpColor = rank === 1 ? AppColors.gold : AppColors.textSecondary;
+
   return (
-    <View style={styles.entry}>
-      <Text style={[styles.rank, { color: rankColor(rank) }]}>#{rank}</Text>
-      <View style={styles.avatarCircle}>
-        <Text style={styles.avatarLetter}>{username[0]?.toUpperCase() ?? '?'}</Text>
+    <View style={[s.entry, isPodium && s.entryPodium]}>
+      <View style={s.rankWrap}>
+        {medal
+          ? <Text style={s.medal}>{medal}</Text>
+          : <Text style={[s.rankNum, { color: accent }]}>#{rank}</Text>}
       </View>
-      <View style={styles.entryInfo}>
-        <Text style={styles.entryName}>{username}</Text>
-        <Text style={styles.entryHandle}>@{handle}</Text>
+
+      <View style={[s.avatar, { borderColor: avatarBorderColor(rank) }]}>
+        <Text style={[s.avatarLetter, isPodium && { color: accent }]}>
+          {handle[0]?.toUpperCase() ?? '?'}
+        </Text>
       </View>
-      <Text style={[styles.entryXP, rank === 1 && styles.goldXP]}>{formatXP(xp)}</Text>
+
+      <View style={s.entryInfo}>
+        <Text style={[s.entryHandle, isPodium && { color: AppColors.textPrimary }]}>
+          @{handle}
+        </Text>
+        {city ? <Text style={s.entryCity}>📍 {city}</Text> : null}
+      </View>
+
+      <Text style={[s.entryXP, { color: xpColor }]}>{formatXP(xp)}</Text>
     </View>
   );
 }
@@ -54,30 +86,34 @@ export function LeaderboardView() {
   const { user } = useAuth();
 
   return (
-    <View style={styles.container}>
+    <View style={s.container}>
+
+      {/* ── Weekly challenge ── */}
       {data?.current_challenge && (
-        <View style={styles.challengeCard}>
-          <Text style={styles.challengeLabel}>WEEKLY CHALLENGE</Text>
-          <View style={styles.challengeRow}>
-            <Text style={styles.challengeIcon}>🥇</Text>
-            <Text style={styles.challengeTitle}>{data.current_challenge.title}</Text>
+        <View style={s.challengeCard}>
+          <View style={s.challengeAccent} />
+          <View style={s.challengeInner}>
+            <Text style={s.challengeLabel}>WEEKLY CHALLENGE</Text>
+            <View style={s.challengeRow}>
+              <Text style={s.challengeIcon}>🏆</Text>
+              <Text style={s.challengeTitle}>{data.current_challenge.title}</Text>
+            </View>
+            <Text style={s.challengeBadge}>Reward: {data.current_challenge.reward_badge}</Text>
           </View>
-          <Text style={styles.challengeBadge}>
-            Reward: {data.current_challenge.reward_badge}
-          </Text>
         </View>
       )}
 
-      <View style={styles.subTabRow}>
+      {/* ── Sub-tabs ── */}
+      <View style={s.subTabRow}>
         {SUB_TABS.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
             <Pressable
               key={tab.id}
-              style={[styles.subTab, isActive && styles.subTabActive]}
+              style={[s.subTab, isActive && s.subTabActive]}
               onPress={() => setActiveTab(tab.id)}
             >
-              <Text style={[styles.subTabLabel, isActive && styles.subTabLabelActive]}>
+              <Text style={[s.subTabLabel, isActive && s.subTabLabelActive]}>
                 {tab.label}
               </Text>
             </Pressable>
@@ -85,142 +121,187 @@ export function LeaderboardView() {
         })}
       </View>
 
-      <Text style={styles.sectionLabel}>TOP LEARNERS</Text>
+      <Text style={s.sectionLabel}>TOP LEARNERS</Text>
 
+      {/* ── List ── */}
       {isLoading ? (
-        <View style={styles.loading}>
+        <View style={s.loading}>
           <ActivityIndicator color={AppColors.primary} />
         </View>
       ) : (
-        <View style={styles.list}>
+        <View style={s.list}>
           {data?.leaderboard.map((entry, index) => (
             <LeaderboardEntry
               key={entry.handle}
               rank={index + 1}
-              username={entry.username}
               handle={entry.handle}
               xp={entry.xp}
+              city={entry.city}
             />
           ))}
           {data?.leaderboard.length === 0 && (
-            <Text style={styles.empty}>No learners yet.</Text>
+            <Text style={s.empty}>No learners yet.</Text>
           )}
         </View>
       )}
 
+      {/* ── Your rank ── */}
       {data?.my_rank && user && (
-        <View style={styles.myRankRow}>
-          <Text style={[styles.rank, styles.myRankText]}>#{data.my_rank.rank}</Text>
-          <View style={[styles.avatarCircle, styles.myRankAvatar]}>
-            <Text style={[styles.avatarLetter, styles.myRankAvatarLetter]}>
+        <View style={s.myRankRow}>
+          <View style={s.rankWrap}>
+            <Text style={[s.rankNum, { color: AppColors.primary }]}>#{data.my_rank.rank}</Text>
+          </View>
+          <View style={[s.avatar, s.myAvatar]}>
+            <Text style={[s.avatarLetter, { color: AppColors.onPrimary }]}>
               {user.username[0]?.toUpperCase() ?? '?'}
             </Text>
           </View>
-          <View style={styles.entryInfo}>
-            <Text style={[styles.entryName, styles.myRankText]}>You</Text>
-            <Text style={styles.entryHandle}>@{user.username}</Text>
+          <View style={s.entryInfo}>
+            <Text style={[s.entryHandle, { color: AppColors.primary }]}>You</Text>
+            <Text style={s.entryCity}>@{user.username}</Text>
           </View>
-          <Text style={[styles.entryXP, styles.myRankText]}>{formatXP(data.my_rank.xp)}</Text>
+          <Text style={[s.entryXP, { color: AppColors.primary }]}>{formatXP(data.my_rank.xp)}</Text>
         </View>
       )}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const s = StyleSheet.create({
   container: {
-    gap: 16,
+    gap: 14,
   },
+
+  // Challenge
   challengeCard: {
-    backgroundColor: AppColors.goldMuted,
+    flexDirection: 'row',
+    backgroundColor: AppColors.goldAlpha06,
     borderRadius: 14,
-    padding: 14,
-    gap: 8,
     borderWidth: 1,
-    borderColor: AppColors.border,
+    borderColor: AppColors.goldAlpha22,
+    overflow: 'hidden',
+  },
+  challengeAccent: {
+    width: 3,
+    backgroundColor: AppColors.gold,
+  },
+  challengeInner: {
+    flex: 1,
+    padding: 14,
+    gap: 6,
   },
   challengeLabel: {
     fontSize: 10,
-    fontWeight: '600',
+    fontWeight: '700',
     color: AppColors.gold,
-    letterSpacing: 0.8,
+    letterSpacing: 1,
   },
   challengeRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  challengeIcon: {
-    fontSize: 20,
-  },
+  challengeIcon: { fontSize: 18 },
   challengeTitle: {
+    flex: 1,
     fontSize: 15,
     fontWeight: '700',
     color: AppColors.textPrimary,
-    flex: 1,
   },
   challengeBadge: {
     fontSize: 12,
     color: AppColors.gold,
+    fontWeight: '500',
   },
+
+  // Sub-tabs
   subTabRow: {
     flexDirection: 'row',
-    backgroundColor: AppColors.card,
+    backgroundColor: AppColors.surface1,
     borderRadius: 10,
     padding: 4,
-    gap: 4,
+    gap: 3,
+    borderWidth: 1,
+    borderColor: AppColors.border,
   },
   subTab: {
     flex: 1,
     alignItems: 'center',
     paddingVertical: 7,
-    borderRadius: 8,
+    borderRadius: 7,
   },
   subTabActive: {
-    backgroundColor: AppColors.background,
+    backgroundColor: AppColors.surface3,
+    borderWidth: 1,
+    borderColor: AppColors.white12,
   },
   subTabLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: AppColors.textSecondary,
+    color: AppColors.textTertiary,
   },
   subTabLabelActive: {
     color: AppColors.textPrimary,
+    fontWeight: '700',
   },
+
   sectionLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: AppColors.textSecondary,
-    letterSpacing: 0.8,
+    color: AppColors.textTertiary,
+    letterSpacing: 1,
   },
+
   loading: {
-    paddingVertical: 24,
+    paddingVertical: 32,
     alignItems: 'center',
   },
+
   list: {
-    gap: 2,
+    backgroundColor: AppColors.card,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: AppColors.border,
+    overflow: 'hidden',
   },
+
+  // Entry
   entry: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    paddingVertical: 10,
+    paddingVertical: 13,
+    paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: AppColors.border,
   },
-  rank: {
+  entryPodium: {
+    backgroundColor: AppColors.surface1,
+  },
+  rankWrap: {
+    width: 28,
+    alignItems: 'center',
+  },
+  medal: {
+    fontSize: 18,
+  },
+  rankNum: {
     fontSize: 13,
     fontWeight: '700',
-    width: 28,
-    textAlign: 'center',
   },
-  avatarCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  avatar: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 1.5,
+    borderColor: AppColors.border,
     backgroundColor: AppColors.primaryMuted,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  myAvatar: {
+    backgroundColor: AppColors.primary,
+    borderColor: AppColors.primary,
   },
   avatarLetter: {
     fontSize: 15,
@@ -229,49 +310,40 @@ const styles = StyleSheet.create({
   },
   entryInfo: {
     flex: 1,
-    gap: 1,
-  },
-  entryName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: AppColors.textPrimary,
+    gap: 2,
   },
   entryHandle: {
-    fontSize: 11,
+    fontSize: 14,
+    fontWeight: '600',
     color: AppColors.textSecondary,
+  },
+  entryCity: {
+    fontSize: 11,
+    color: AppColors.textTertiary,
   },
   entryXP: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
     color: AppColors.textSecondary,
   },
-  goldXP: {
-    color: AppColors.gold,
-  },
+
   empty: {
-    paddingVertical: 24,
+    paddingVertical: 32,
     textAlign: 'center',
-    color: AppColors.textSecondary,
+    color: AppColors.textTertiary,
     fontSize: 14,
   },
+
+  // Your rank row
   myRankRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    paddingVertical: 13,
+    paddingHorizontal: 16,
     backgroundColor: AppColors.primaryMuted,
-    borderRadius: 10,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: AppColors.primary,
-  },
-  myRankAvatar: {
-    backgroundColor: AppColors.primary,
-  },
-  myRankAvatarLetter: {
-    color: AppColors.background,
-  },
-  myRankText: {
-    color: AppColors.primary,
+    borderColor: AppColors.primaryAlpha22,
   },
 });

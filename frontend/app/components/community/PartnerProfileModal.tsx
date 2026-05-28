@@ -16,6 +16,52 @@ import {
 import { AppColors } from '@/constants/theme';
 import type { OwnPartnerProfile, UpdatePartnerProfileRequest } from '@/types/api';
 
+const CITY_OPTIONS = [
+  'Atlanta',
+  'Birmingham',
+  'Bristol',
+  'Calgary',
+  'Columbus',
+  'Copenhagen',
+  'Dubai',
+  'Leeds',
+  'Leicester',
+  'London',
+  'Manchester',
+  'Melbourne',
+  'Minneapolis',
+  'Mogadishu',
+  'Nairobi',
+  'New York',
+  'Oslo',
+  'Ottawa',
+  'Seattle',
+  'Sheffield',
+  'Stockholm',
+  'Sydney',
+  'Toronto',
+  'Washington DC',
+] as const;
+
+const AVAILABILITY_OPTIONS = [
+  'Flexible',
+  'Weekends',
+  'Evenings',
+  'Weekly',
+  'Monthly',
+] as const;
+
+const BIO_OPTIONS = [
+  'I\'m just starting out — I don\'t understand or speak Somali yet',
+  'I can say a few words and phrases but don\'t understand much',
+  'I can understand a little Somali but can\'t really speak it',
+  'I can understand Somali but struggle to speak it',
+  'I can speak some Somali but want to improve my fluency',
+  'I grew up hearing Somali at home but never formally studied it',
+  'I\'m comfortable speaking and understanding Somali',
+  'I\'m a fluent speaker and want to help others learn',
+] as const;
+
 interface Props {
   visible: boolean;
   current: OwnPartnerProfile | undefined;
@@ -26,7 +72,11 @@ interface Props {
 
 export function PartnerProfileModal({ visible, current, isSaving, onSave, onClose }: Props) {
   const [bio, setBio] = useState('');
+  const [bioOpen, setBioOpen] = useState(false);
   const [availability, setAvailability] = useState('');
+  const [availabilityOpen, setAvailabilityOpen] = useState(false);
+  const [city, setCity] = useState('');
+  const [cityOpen, setCityOpen] = useState(false);
   const [preferredFormat, setPreferredFormat] = useState('');
   const [isHeritageSpeaker, setIsHeritageSpeaker] = useState(false);
 
@@ -34,6 +84,7 @@ export function PartnerProfileModal({ visible, current, isSaving, onSave, onClos
     if (current) {
       setBio(current.bio);
       setAvailability(current.availability);
+      setCity(current.city);
       setPreferredFormat(current.preferred_format);
       setIsHeritageSpeaker(current.is_heritage_speaker);
     }
@@ -43,6 +94,7 @@ export function PartnerProfileModal({ visible, current, isSaving, onSave, onClos
     onSave({
       bio,
       availability,
+      city,
       preferred_format: preferredFormat,
       is_heritage_speaker: isHeritageSpeaker,
     });
@@ -69,33 +121,123 @@ export function PartnerProfileModal({ visible, current, isSaving, onSave, onClos
         </View>
 
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-          <Text style={styles.groupLabel}>BIO</Text>
-          <TextInput
-            style={[styles.input, styles.bioInput]}
-            value={bio}
-            onChangeText={setBio}
-            placeholder="Tell partners about yourself..."
-            placeholderTextColor={AppColors.textSecondary}
-            multiline
-            maxLength={300}
-          />
+          <Text style={styles.groupLabel}>YOUR SOMALI LEVEL</Text>
+
+          <Pressable
+            style={[styles.dropdownTrigger, bioOpen && styles.dropdownTriggerOpen]}
+            onPress={() => setBioOpen((o) => !o)}
+          >
+            <Text
+              style={[styles.dropdownValue, !bio && styles.dropdownPlaceholder]}
+              numberOfLines={2}
+            >
+              {bio || 'Select your Somali level...'}
+            </Text>
+            <Text style={styles.dropdownChevron}>{bioOpen ? '▴' : '▾'}</Text>
+          </Pressable>
+
+          {bioOpen && (
+            <View style={styles.dropdownList}>
+              {BIO_OPTIONS.map((option, i) => {
+                const selected = bio === option;
+                const isLast = i === BIO_OPTIONS.length - 1;
+                return (
+                  <Pressable
+                    key={option}
+                    style={[styles.dropdownRow, !isLast && styles.dropdownRowBorder]}
+                    onPress={() => { setBio(option); setBioOpen(false); }}
+                  >
+                    <Text style={[styles.dropdownRowText, selected && styles.dropdownRowSelected]}>
+                      {option}
+                    </Text>
+                    {selected && <Text style={styles.dropdownCheck}>✓</Text>}
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
 
           <Text style={styles.groupLabel}>AVAILABILITY</Text>
-          <TextInput
-            style={styles.input}
-            value={availability}
-            onChangeText={setAvailability}
-            placeholder="e.g. Weekends, Evenings"
-            placeholderTextColor={AppColors.textSecondary}
-          />
 
-          <Text style={styles.groupLabel}>PREFERRED FORMAT</Text>
+          <Pressable
+            style={[styles.dropdownTrigger, availabilityOpen && styles.dropdownTriggerOpen]}
+            onPress={() => setAvailabilityOpen((o) => !o)}
+          >
+            <Text
+              style={[styles.dropdownValue, !availability && styles.dropdownPlaceholder]}
+              numberOfLines={1}
+            >
+              {availability || 'Select your availability...'}
+            </Text>
+            <Text style={styles.dropdownChevron}>{availabilityOpen ? '▴' : '▾'}</Text>
+          </Pressable>
+
+          {availabilityOpen && (
+            <View style={styles.dropdownList}>
+              {AVAILABILITY_OPTIONS.map((option, i) => {
+                const selected = availability === option;
+                const isLast = i === AVAILABILITY_OPTIONS.length - 1;
+                return (
+                  <Pressable
+                    key={option}
+                    style={[styles.dropdownRow, !isLast && styles.dropdownRowBorder]}
+                    onPress={() => { setAvailability(option); setAvailabilityOpen(false); }}
+                  >
+                    <Text style={[styles.dropdownRowText, selected && styles.dropdownRowSelected]}>
+                      {option}
+                    </Text>
+                    {selected && <Text style={styles.dropdownCheck}>✓</Text>}
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
+
+          <Text style={styles.groupLabel}>CITY</Text>
+
+          <Pressable
+            style={[styles.dropdownTrigger, cityOpen && styles.dropdownTriggerOpen]}
+            onPress={() => setCityOpen((o) => !o)}
+          >
+            <Text
+              style={[styles.dropdownValue, !city && styles.dropdownPlaceholder]}
+              numberOfLines={1}
+            >
+              {city || 'Select your city...'}
+            </Text>
+            <Text style={styles.dropdownChevron}>{cityOpen ? '▴' : '▾'}</Text>
+          </Pressable>
+
+          {cityOpen && (
+            <View style={styles.dropdownList}>
+              {CITY_OPTIONS.map((option, i) => {
+                const selected = city === option;
+                const isLast = i === CITY_OPTIONS.length - 1;
+                return (
+                  <Pressable
+                    key={option}
+                    style={[styles.dropdownRow, !isLast && styles.dropdownRowBorder]}
+                    onPress={() => { setCity(option); setCityOpen(false); }}
+                  >
+                    <Text style={[styles.dropdownRowText, selected && styles.dropdownRowSelected]}>
+                      {option}
+                    </Text>
+                    {selected && <Text style={styles.dropdownCheck}>✓</Text>}
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
+
+          <Text style={styles.groupLabel}>DISCORD ACCOUNT</Text>
           <TextInput
             style={styles.input}
             value={preferredFormat}
             onChangeText={setPreferredFormat}
-            placeholder="e.g. Video call, Text chat"
+            placeholder="e.g. username or username#1234"
             placeholderTextColor={AppColors.textSecondary}
+            autoCapitalize="none"
+            autoCorrect={false}
           />
 
           <View style={styles.toggleRow}>
@@ -163,7 +305,71 @@ const styles = StyleSheet.create({
     color: AppColors.textSecondary,
     letterSpacing: 0.8,
     marginTop: 12,
-    marginBottom: 4,
+    marginBottom: 2,
+  },
+  dropdownTrigger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: AppColors.surface1,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: AppColors.border,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    gap: 10,
+  },
+  dropdownTriggerOpen: {
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    borderBottomColor: 'transparent',
+  },
+  dropdownValue: {
+    flex: 1,
+    fontSize: 14,
+    color: AppColors.textPrimary,
+    lineHeight: 20,
+  },
+  dropdownPlaceholder: {
+    color: AppColors.textTertiary,
+  },
+  dropdownChevron: {
+    fontSize: 12,
+    color: AppColors.textSecondary,
+  },
+  dropdownList: {
+    backgroundColor: AppColors.surface1,
+    borderWidth: 1,
+    borderTopWidth: 0,
+    borderColor: AppColors.border,
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
+    overflow: 'hidden',
+  },
+  dropdownRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 13,
+    paddingHorizontal: 14,
+    gap: 10,
+  },
+  dropdownRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: AppColors.border,
+  },
+  dropdownRowText: {
+    flex: 1,
+    fontSize: 14,
+    color: AppColors.textSecondary,
+    lineHeight: 20,
+  },
+  dropdownRowSelected: {
+    color: AppColors.primary,
+    fontWeight: '500',
+  },
+  dropdownCheck: {
+    fontSize: 14,
+    color: AppColors.primary,
+    fontWeight: '700',
   },
   input: {
     backgroundColor: AppColors.card,
@@ -174,10 +380,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     fontSize: 14,
     color: AppColors.textPrimary,
-  },
-  bioInput: {
-    minHeight: 90,
-    textAlignVertical: 'top',
   },
   toggleRow: {
     flexDirection: 'row',

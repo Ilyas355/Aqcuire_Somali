@@ -1,4 +1,5 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useRef } from 'react';
+import { ActivityIndicator, Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
 import { AppColors } from '@/constants/theme';
@@ -15,34 +16,62 @@ interface Props {
   onPress?: (id: number) => void;
 }
 
-function Avatar({ username }: { username: string }) {
+// ─── Avatar ───────────────────────────────────────────────────────────────────
+
+function Avatar({ initial, isOnline }: { initial: string; isOnline: boolean }) {
   return (
-    <View style={avatarStyles.circle}>
-      <Text style={avatarStyles.letter}>{username[0]?.toUpperCase() ?? '?'}</Text>
+    <View style={[avS.ring, isOnline && avS.ringOnline]}>
+      <View style={avS.circle}>
+        <Text style={avS.letter}>{initial}</Text>
+      </View>
+      {isOnline && <View style={avS.dot} />}
     </View>
   );
 }
 
-const avatarStyles = StyleSheet.create({
+const avS = StyleSheet.create({
+  ring: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    borderWidth: 2,
+    borderColor: AppColors.border,
+    padding: 2,
+  },
+  ringOnline: {
+    borderColor: AppColors.primary,
+  },
   circle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    flex: 1,
+    borderRadius: 22,
     backgroundColor: AppColors.primaryMuted,
     alignItems: 'center',
     justifyContent: 'center',
   },
   letter: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 19,
+    fontWeight: '800',
     color: AppColors.primary,
+  },
+  dot: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: AppColors.primary,
+    borderWidth: 2,
+    borderColor: AppColors.card,
   },
 });
 
-function ConnectButton({
+// ─── Action button ────────────────────────────────────────────────────────────
+
+function ActionBtn({
   status,
-  onPress,
   loading,
+  onPress,
   onReject,
   isRejecting,
   onRemove,
@@ -50,8 +79,8 @@ function ConnectButton({
   navigateToDetail,
 }: {
   status: SuggestedPartner['request_status'];
-  onPress: () => void;
   loading: boolean;
+  onPress: () => void;
   onReject?: () => void;
   isRejecting?: boolean;
   onRemove?: () => void;
@@ -60,156 +89,152 @@ function ConnectButton({
 }) {
   if (status === 'partner') {
     return (
-      <View style={btnStyles.partnerRow}>
-        <View style={[btnStyles.base, btnStyles.partner]}>
-          <Text style={[btnStyles.label, btnStyles.partnerLabel]}>Partners ✓</Text>
+      <View style={btnS.group}>
+        <View style={[btnS.btn, btnS.partnerBtn]}>
+          <Text style={[btnS.label, btnS.partnerLabel]}>✓ Connected</Text>
         </View>
         {onRemove && (
-          <Pressable style={[btnStyles.base, btnStyles.reject]} onPress={onRemove} disabled={isRemoving}>
-            {isRemoving ? (
-              <ActivityIndicator color={AppColors.error} size="small" />
-            ) : (
-              <Text style={[btnStyles.label, btnStyles.rejectLabel]}>Remove</Text>
-            )}
+          <Pressable style={[btnS.btn, btnS.removeBtn]} onPress={onRemove} disabled={isRemoving}>
+            {isRemoving
+              ? <ActivityIndicator size="small" color={AppColors.error} />
+              : <Text style={[btnS.label, btnS.removeLabel]}>Remove</Text>}
           </Pressable>
         )}
       </View>
     );
   }
+
   if (status === 'pending') {
     return (
-      <View style={[btnStyles.base, btnStyles.pending]}>
-        <Text style={[btnStyles.label, btnStyles.pendingLabel]}>Pending</Text>
+      <View style={[btnS.btn, btnS.pendingBtn]}>
+        <Text style={[btnS.label, btnS.pendingLabel]}>Pending…</Text>
       </View>
     );
   }
+
   if (status === 'received') {
     if (navigateToDetail) {
       return (
-        <View style={[btnStyles.base, btnStyles.respond]}>
-          <Text style={[btnStyles.label, btnStyles.respondLabel]}>Respond →</Text>
+        <View style={[btnS.btn, btnS.respondBtn]}>
+          <Text style={[btnS.label, btnS.respondLabel]}>Respond →</Text>
         </View>
       );
     }
     return (
-      <View style={btnStyles.partnerRow}>
+      <View style={btnS.group}>
         <Pressable
-          style={[btnStyles.base, btnStyles.accept]}
+          style={[btnS.btn, btnS.acceptBtn]}
           onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onPress(); }}
           disabled={loading}
         >
-          {loading ? (
-            <ActivityIndicator color={AppColors.background} size="small" />
-          ) : (
-            <Text style={[btnStyles.label, btnStyles.acceptLabel]}>Accept</Text>
-          )}
+          {loading
+            ? <ActivityIndicator size="small" color={AppColors.onPrimary} />
+            : <Text style={[btnS.label, btnS.acceptLabel]}>Accept</Text>}
         </Pressable>
         {onReject && (
-          <Pressable style={[btnStyles.base, btnStyles.reject]} onPress={onReject} disabled={isRejecting}>
-            {isRejecting ? (
-              <ActivityIndicator color={AppColors.error} size="small" />
-            ) : (
-              <Text style={[btnStyles.label, btnStyles.rejectLabel]}>Reject</Text>
-            )}
+          <Pressable style={[btnS.btn, btnS.rejectBtn]} onPress={onReject} disabled={isRejecting}>
+            {isRejecting
+              ? <ActivityIndicator size="small" color={AppColors.error} />
+              : <Text style={[btnS.label, btnS.rejectLabel]}>Decline</Text>}
           </Pressable>
         )}
       </View>
     );
   }
+
   return (
     <Pressable
-      style={[btnStyles.base, btnStyles.connect]}
+      style={[btnS.btn, btnS.connectBtn]}
       onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onPress(); }}
       disabled={loading}
     >
-      {loading ? (
-        <ActivityIndicator color={AppColors.primary} size="small" />
-      ) : (
-        <Text style={[btnStyles.label, btnStyles.connectLabel]}>Connect</Text>
-      )}
+      {loading
+        ? <ActivityIndicator size="small" color={AppColors.primary} />
+        : <Text style={[btnS.label, btnS.connectLabel]}>Connect</Text>}
     </Pressable>
   );
 }
 
-const btnStyles = StyleSheet.create({
-  base: {
-    borderRadius: 8,
+const btnS = StyleSheet.create({
+  group: { flexDirection: 'row', gap: 6 },
+  btn: {
+    borderRadius: 20,
     paddingVertical: 7,
     paddingHorizontal: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 70,
   },
-  partnerRow: {
-    flexDirection: 'row',
-    gap: 6,
-  },
-  connect: {
-    borderWidth: 1,
-    borderColor: AppColors.primary,
-  },
-  accept: {
-    backgroundColor: AppColors.primary,
-  },
-  partner: {
-    borderWidth: 1,
-    borderColor: AppColors.primary,
-    backgroundColor: AppColors.primaryMuted,
-  },
-  pending: {
-    borderWidth: 1,
-    borderColor: AppColors.border,
-  },
-  reject: {
-    borderWidth: 1,
-    borderColor: AppColors.error,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  connectLabel: { color: AppColors.primary },
-  acceptLabel:  { color: AppColors.background },
-  pendingLabel: { color: AppColors.textSecondary },
-  partnerLabel: { color: AppColors.primary },
+  label: { fontSize: 12, fontWeight: '700', letterSpacing: 0.1 },
+  connectBtn:    { borderWidth: 1.5, borderColor: AppColors.primary },
+  connectLabel:  { color: AppColors.primary },
+  pendingBtn:    { backgroundColor: AppColors.surface2, borderWidth: 1, borderColor: AppColors.border },
+  pendingLabel:  { color: AppColors.textTertiary },
+  acceptBtn:     { backgroundColor: AppColors.primary },
+  acceptLabel:   { color: AppColors.onPrimary },
+  rejectBtn:     { borderWidth: 1.5, borderColor: AppColors.error },
   rejectLabel:   { color: AppColors.error },
-  respond:       { borderWidth: 1, borderColor: AppColors.orange },
+  partnerBtn:    { backgroundColor: AppColors.primaryMuted, borderWidth: 1, borderColor: AppColors.primaryAlpha22 },
+  partnerLabel:  { color: AppColors.primary },
+  removeBtn:     { borderWidth: 1, borderColor: AppColors.border },
+  removeLabel:   { color: AppColors.textSecondary },
+  respondBtn:    { borderWidth: 1.5, borderColor: AppColors.orange },
   respondLabel:  { color: AppColors.orange },
 });
 
-export function PartnerCard({ partner, onConnect, isConnecting, onReject, isRejecting, onRemove, isRemoving, onPress }: Props) {
+// ─── Card ─────────────────────────────────────────────────────────────────────
+
+export function PartnerCard({
+  partner, onConnect, isConnecting, onReject, isRejecting, onRemove, isRemoving, onPress,
+}: Props) {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
   const pp = partner.partner_profile ?? {
-    bio: '', rating: 0, total_partners: 0,
-    is_heritage_speaker: false, availability: '', preferred_format: '',
+    bio: '', total_partners: 0, is_heritage_speaker: false, availability: '', city: '',
   };
 
-  const cardContent = (
-    <View style={styles.card}>
-      <View style={styles.topRow}>
-        <Avatar username={partner.username} />
-        <View style={styles.info}>
-          <View style={styles.nameRow}>
-            <Text style={styles.name}>{partner.username}</Text>
-            {partner.is_online && <View style={styles.onlineDot} />}
-          </View>
-          <Text style={styles.handle}>@{partner.handle}</Text>
-          <View style={styles.badgeRow}>
-            {partner.level_name && (
-              <View style={styles.levelBadge}>
-                <Text style={styles.levelText}>{partner.level_name}</Text>
-              </View>
-            )}
-            {pp.is_heritage_speaker && (
-              <View style={styles.heritageBadge}>
-                <Text style={styles.heritageText}>Heritage</Text>
-              </View>
-            )}
-          </View>
+  const initial = partner.handle[0]?.toUpperCase() ?? '?';
+
+  const onPressIn = () =>
+    Animated.spring(scaleAnim, { toValue: 0.975, useNativeDriver: true, damping: 20, stiffness: 300 }).start();
+  const onPressOut = () =>
+    Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, damping: 20, stiffness: 300 }).start();
+
+  const showFooter =
+    partner.total_xp > 0 ||
+    partner.match_percentage > 0 ||
+    partner.current_section ||
+    pp.availability;
+
+  const cardBody = (
+    <Animated.View style={[s.card, { transform: [{ scale: scaleAnim }] }]}>
+
+      {/* ── Top row: avatar + info + button ── */}
+      <View style={s.topRow}>
+        <Avatar initial={initial} isOnline={partner.is_online} />
+
+        <View style={s.info}>
+          <Text style={s.handle} numberOfLines={1}>@{partner.handle}</Text>
+          {pp.city ? <Text style={s.city}>📍 {pp.city}</Text> : null}
+          {(partner.level_name || pp.is_heritage_speaker) && (
+            <View style={s.tagRow}>
+              {partner.level_name && (
+                <View style={s.levelTag}>
+                  <Text style={s.levelTagText}>{partner.level_name}</Text>
+                </View>
+              )}
+              {pp.is_heritage_speaker && (
+                <View style={s.heritageTag}>
+                  <Text style={s.heritageTagText}>Heritage</Text>
+                </View>
+              )}
+            </View>
+          )}
         </View>
-        <ConnectButton
+
+        <ActionBtn
           status={partner.request_status}
-          onPress={() => onConnect(partner.id)}
           loading={isConnecting}
+          onPress={() => onConnect(partner.id)}
           onReject={onReject ? () => onReject(partner.id) : undefined}
           isRejecting={isRejecting}
           onRemove={onRemove ? () => onRemove(partner.id) : undefined}
@@ -218,51 +243,65 @@ export function PartnerCard({ partner, onConnect, isConnecting, onReject, isReje
         />
       </View>
 
+      {/* ── Bio ── */}
       {pp.bio ? (
-        <Text style={styles.bio} numberOfLines={2}>{pp.bio}</Text>
+        <View style={s.bioRow}>
+          <View style={s.bioAccent} />
+          <Text style={s.bioText} numberOfLines={2}>{pp.bio}</Text>
+        </View>
       ) : null}
 
-      <View style={styles.metaRow}>
-        {partner.current_section && (
-          <Text style={styles.metaChip}>{partner.current_section}</Text>
-        )}
-        {partner.total_xp > 0 && (
-          <Text style={styles.metaChip}>{partner.total_xp.toLocaleString()} XP</Text>
-        )}
-        {partner.match_percentage > 0 && (
-          <Text style={styles.matchChip}>{partner.match_percentage}% match</Text>
-        )}
-        {pp.availability ? (
-          <Text style={styles.metaChip}>{pp.availability}</Text>
-        ) : null}
-        {pp.preferred_format ? (
-          <Text style={styles.metaChip}>{pp.preferred_format}</Text>
-        ) : null}
-        {pp.rating > 0 && (
-          <Text style={styles.metaChip}>⭐ {pp.rating.toFixed(1)}</Text>
-        )}
-      </View>
-    </View>
+      {/* ── Footer chips ── */}
+      {showFooter && (
+        <View style={s.footer}>
+          {partner.total_xp > 0 && (
+            <View style={s.xpChip}>
+              <Text style={s.xpChipText}>🏆 {partner.total_xp.toLocaleString()} XP</Text>
+            </View>
+          )}
+          {partner.match_percentage > 0 && (
+            <View style={s.matchChip}>
+              <Text style={s.matchChipText}>{partner.match_percentage}% match</Text>
+            </View>
+          )}
+          {partner.current_section && (
+            <View style={s.metaChip}>
+              <Text style={s.metaChipText}>{partner.current_section}</Text>
+            </View>
+          )}
+          {pp.availability && (
+            <View style={s.metaChip}>
+              <Text style={s.metaChipText}>{pp.availability}</Text>
+            </View>
+          )}
+        </View>
+      )}
+    </Animated.View>
   );
 
   if (onPress) {
     return (
-      <Pressable onPress={() => onPress(partner.id)}>
-        {cardContent}
+      <Pressable
+        onPress={() => onPress(partner.id)}
+        onPressIn={onPressIn}
+        onPressOut={onPressOut}
+      >
+        {cardBody}
       </Pressable>
     );
   }
-  return cardContent;
+
+  return cardBody;
 }
 
-const styles = StyleSheet.create({
+const s = StyleSheet.create({
   card: {
     backgroundColor: AppColors.card,
-    borderRadius: 14,
-    padding: 14,
-    gap: 10,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: AppColors.border,
+    padding: 16,
+    gap: 12,
   },
   topRow: {
     flexDirection: 'row',
@@ -271,86 +310,112 @@ const styles = StyleSheet.create({
   },
   info: {
     flex: 1,
-    gap: 2,
-  },
-  nameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  name: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: AppColors.textPrimary,
-  },
-  onlineDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: AppColors.primary,
-  },
-  handle: {
-    fontSize: 12,
-    color: AppColors.textSecondary,
-  },
-  badgeRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 4,
   },
-  levelBadge: {
+  handle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: AppColors.textPrimary,
+    letterSpacing: -0.2,
+  },
+  city: {
+    fontSize: 12,
+    color: AppColors.textTertiary,
+    marginTop: -1,
+  },
+  tagRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 5,
+  },
+  levelTag: {
     backgroundColor: AppColors.primaryMuted,
     borderRadius: 20,
     paddingVertical: 2,
     paddingHorizontal: 8,
     borderWidth: 1,
-    borderColor: AppColors.primary,
+    borderColor: AppColors.primaryAlpha22,
   },
-  levelText: {
+  levelTagText: {
     fontSize: 10,
-    fontWeight: '600',
+    fontWeight: '700',
     color: AppColors.primary,
+    letterSpacing: 0.2,
   },
-  heritageBadge: {
-    backgroundColor: AppColors.goldMuted,
+  heritageTag: {
+    backgroundColor: AppColors.goldAlpha10,
     borderRadius: 20,
     paddingVertical: 2,
     paddingHorizontal: 8,
+    borderWidth: 1,
+    borderColor: AppColors.goldAlpha22,
   },
-  heritageText: {
+  heritageTagText: {
     fontSize: 10,
-    fontWeight: '600',
+    fontWeight: '700',
     color: AppColors.gold,
+    letterSpacing: 0.2,
   },
-  bio: {
+  bioRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  bioAccent: {
+    width: 2,
+    borderRadius: 2,
+    alignSelf: 'stretch',
+    backgroundColor: AppColors.primaryAlpha40,
+  },
+  bioText: {
+    flex: 1,
     fontSize: 13,
     color: AppColors.textSecondary,
-    lineHeight: 18,
+    lineHeight: 19,
+    fontStyle: 'italic',
   },
-  metaRow: {
+  footer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
   },
-  metaChip: {
-    fontSize: 11,
-    color: AppColors.textSecondary,
-    backgroundColor: AppColors.background,
+  xpChip: {
+    backgroundColor: AppColors.goldAlpha06,
     borderRadius: 20,
-    paddingVertical: 3,
-    paddingHorizontal: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
     borderWidth: 1,
-    borderColor: AppColors.border,
-    overflow: 'hidden',
+    borderColor: AppColors.goldAlpha22,
+  },
+  xpChipText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: AppColors.gold,
   },
   matchChip: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: AppColors.primary,
     backgroundColor: AppColors.primaryMuted,
     borderRadius: 20,
-    paddingVertical: 3,
-    paddingHorizontal: 8,
-    overflow: 'hidden',
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderWidth: 1,
+    borderColor: AppColors.primaryAlpha22,
+  },
+  matchChipText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: AppColors.primary,
+  },
+  metaChip: {
+    backgroundColor: AppColors.surface2,
+    borderRadius: 20,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderWidth: 1,
+    borderColor: AppColors.border,
+  },
+  metaChipText: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: AppColors.textSecondary,
   },
 });

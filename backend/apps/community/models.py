@@ -138,11 +138,11 @@ class PartnerProfile(models.Model):
         related_name='partner_profile',
     )
     bio = models.TextField(blank=True, default='')
-    rating = models.FloatField(default=0)
     total_partners = models.PositiveIntegerField(default=0)
     is_heritage_speaker = models.BooleanField(default=False)
     availability = models.CharField(max_length=100, blank=True, default='')
     preferred_format = models.CharField(max_length=100, blank=True, default='')
+    city = models.CharField(max_length=100, blank=True, default='')
     is_discoverable = models.BooleanField(default=False)
 
     def match_score_with(self, other: 'PartnerProfile') -> int:

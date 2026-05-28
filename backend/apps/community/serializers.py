@@ -6,16 +6,34 @@ from apps.users.models import UserProfile
 from .models import Partner, PartnerProfile, WeeklyChallenge
 
 
-class PartnerProfileSerializer(serializers.ModelSerializer):
+class PublicPartnerProfileSerializer(serializers.ModelSerializer):
+    """Visible to non-partners — discord handle excluded."""
+    total_partners = serializers.SerializerMethodField()
+
     class Meta:
         model = PartnerProfile
-        fields = ['bio', 'rating', 'total_partners', 'is_heritage_speaker', 'availability', 'preferred_format']
+        fields = ['bio', 'total_partners', 'is_heritage_speaker', 'availability', 'city']
+
+    def get_total_partners(self, obj):
+        return obj.user.partners.count()
+
+
+class PartnerProfileSerializer(serializers.ModelSerializer):
+    """Full profile including discord handle — only exposed to actual partners."""
+    total_partners = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PartnerProfile
+        fields = ['bio', 'total_partners', 'is_heritage_speaker', 'availability', 'preferred_format', 'city']
+
+    def get_total_partners(self, obj):
+        return obj.user.partners.count()
 
 
 class PartnerProfileUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = PartnerProfile
-        fields = ['bio', 'is_heritage_speaker', 'availability', 'preferred_format']
+        fields = ['bio', 'is_heritage_speaker', 'availability', 'preferred_format', 'city']
 
     def update(self, instance, validated_data):
         instance = super().update(instance, validated_data)
@@ -29,7 +47,7 @@ class SuggestedPartnerSerializer(serializers.ModelSerializer):
     handle = serializers.CharField(source='profile.handle')
     avatar = serializers.URLField(source='profile.avatar')
     total_xp = serializers.IntegerField(source='profile.total_xp')
-    partner_profile = PartnerProfileSerializer(read_only=True)
+    partner_profile = PublicPartnerProfileSerializer(read_only=True)
     request_status = serializers.SerializerMethodField()
     match_percentage = serializers.SerializerMethodField()
     level_name = serializers.SerializerMethodField()
@@ -86,30 +104,46 @@ class MyPartnerSerializer(serializers.ModelSerializer):
         try:
             return PartnerProfileSerializer(obj.partner.partner_profile).data
         except AttributeError:
-            return {'bio': '', 'rating': 0, 'total_partners': 0,
-                    'is_heritage_speaker': False, 'availability': '', 'preferred_format': ''}
+            return {'bio': '', 'total_partners': 0,
+                    'is_heritage_speaker': False, 'availability': '', 'preferred_format': '', 'city': ''}
 
 
 class LeaderboardEntrySerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username')
     xp = serializers.SerializerMethodField()
+    city = serializers.SerializerMethodField()
 
     class Meta:
         model = UserProfile
-        fields = ['username', 'handle', 'avatar', 'xp']
+        fields = ['username', 'handle', 'avatar', 'xp', 'city']
 
     def get_xp(self, obj):
         if hasattr(obj, 'weekly_xp'):
             return obj.weekly_xp
         return obj.total_xp
 
+    def get_city(self, obj):
+        try:
+            return obj.user.partner_profile.city
+        except AttributeError:
+            return ''
+
 
 class SuggestedPartnerDetailSerializer(SuggestedPartnerSerializer):
     current_streak = serializers.IntegerField(source='profile.current_streak')
     is_diaspora = serializers.BooleanField(source='profile.is_diaspora')
+    partner_profile = serializers.SerializerMethodField()
 
     class Meta(SuggestedPartnerSerializer.Meta):
         fields = SuggestedPartnerSerializer.Meta.fields + ['current_streak', 'is_diaspora']
+
+    def get_partner_profile(self, obj):
+        pp = getattr(obj, 'partner_profile', None)
+        if not pp:
+            return None
+        if self.context.get('viewer_is_partner'):
+            return PartnerProfileSerializer(pp).data
+        return PublicPartnerProfileSerializer(pp).data
 
 
 class WeeklyChallengeSerializer(serializers.ModelSerializer):

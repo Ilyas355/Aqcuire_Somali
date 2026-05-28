@@ -2,6 +2,7 @@ import * as SecureStore from 'expo-secure-store';
 
 import type {
   ForgotPasswordRequest,
+  PasswordChangeRequest,
   HomeScreenResponse,
   LeaderboardResponse,
   LeaderboardTab,
@@ -10,7 +11,6 @@ import type {
   MyPartner,
   OwnPartnerProfile,
   PartnerRequestResponse,
-  PasswordChangeRequest,
   Profile,
   QuizSubmitRequest,
   QuizSubmitResponse,
